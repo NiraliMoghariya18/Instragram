@@ -16,7 +16,9 @@ end
 
 target 'Instagram' do
   config = use_native_modules!
-
+use_frameworks! :linkage => :static
+$RNFirebaseAsStaticFramework = true
+ENV['RCT_USE_PREBUILT_RNCORE'] = '0'
   use_react_native!(
     :path => config[:reactNativePath],
     # An absolute path to your application root.
