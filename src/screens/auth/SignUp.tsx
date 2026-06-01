@@ -24,10 +24,11 @@ import { StackRootScreen } from '../../types/navigationtype';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DatePicker from 'react-native-date-picker';
 import { onGoogleButtonPress } from '../../functions/auth/auth';
-import { auth } from '../../utils/firebaseConfig';
-import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+// import { auth } from '../../utils/firebaseConfig';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import RadioButton from '../../components/common/CustomRadioButton';
-
+import auth from '@react-native-firebase/auth';
+import { auths } from '../../utils/firebaseConfig';
 interface Error {
   firstName?: string;
   lastName?: string;
@@ -146,39 +147,52 @@ const SignUp = () => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
+  const { isGoogleUser }: any = route.params || {};
+
   const handleSignUp = async () => {
     if (!validate()) return;
     const randomProfileImage = getRandomImage();
+
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password,
-      );
-      const uid = userCredential.user.uid;
+      let uid = '';
+
+      if (isGoogleUser) {
+        const currentUser = auth().currentUser;
+        if (!currentUser) throw new Error('No authenticated user found.');
+        uid = currentUser.uid;
+      } else {
+        const userCredential = await createUserWithEmailAndPassword(
+          auths,
+          email,
+          password,
+        );
+        uid = userCredential.user.uid;
+      }
 
       await firestore().collection('users').doc(uid).set({
         profileImage: randomProfileImage,
-        firstName,
-        lastName,
+        firstName: firstName.toLowerCase(),
+        lastName: lastName.toLowerCase(),
         gender,
         phoneNo,
         dob,
         email,
-        password,
+        followers: [],
+        following: [],
         createdAt: firestore.FieldValue.serverTimestamp(),
       });
-
-      await signOut(auth);
+      if (isGoogleUser) {
+        await auth().signOut();
+      }
 
       navigation.replace('Login');
     } catch (error: unknown) {
       if (error instanceof Error) {
-        Alert.alert(error.message);
+        Alert.alert('Sign Up Error', error.message);
       }
     }
   };
-
   const signIn = () => {
     navigation.navigate('Login');
   };
@@ -333,7 +347,9 @@ const SignUp = () => {
             secureTextEntry={isConfirmPasswordSecure}
             imageStyle={styles.eye}
             rightImage={isConfirmPasswordSecure ? images.hidePass : images.eye}
-            onPressImage={() => setConfirmPasswordSecure(!isPasswordSecure)}
+            onPressImage={() =>
+              setConfirmPasswordSecure(!isConfirmPasswordSecure)
+            }
           />
 
           <CustomButton label={strings.signUp} onPress={handleSignUp} />

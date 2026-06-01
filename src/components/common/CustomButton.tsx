@@ -8,6 +8,7 @@ import {
   Image,
   ImageSourcePropType,
   ImageStyle,
+  View,
 } from 'react-native';
 import { rf, rh, rw } from '../../utils/responsive';
 import { colors } from '../../utils/color';
@@ -35,9 +36,9 @@ const CustomButton = ({
       activeOpacity={0.5}
     >
       {leftImage && (
-        <TouchableOpacity activeOpacity={0.7}>
+        <View>
           <Image source={leftImage} style={[imageStyle]} />
-        </TouchableOpacity>
+        </View>
       )}
       <Text style={[styles.buttonText, textStyle]}>{label}</Text>
     </TouchableOpacity>

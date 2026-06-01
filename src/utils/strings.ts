@@ -19,4 +19,10 @@ export const strings = {
   submit: 'Submit',
   language: 'Select Language',
   primary: 'primary',
+  accept: 'Accept',
+  delete: 'Delete',
+  loading: 'Loading...',
+  noNotification: 'No Notifications',
+  suggested_account: 'Suggested Account',
+  no_users_found: 'No users found',
 };
