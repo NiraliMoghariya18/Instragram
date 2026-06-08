@@ -1,19 +1,34 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  StyleProp,
+  TextStyle,
+} from 'react-native';
 import { colors } from '../../utils/color';
 import { rf, rh, rw } from '../../utils/responsive';
+
 interface Props {
   label: string;
   selected: boolean;
   onSelect: () => void;
+  disabled?: boolean;
+  style?: StyleProp<TextStyle>;
 }
-const RadioButton = ({ label, selected, onSelect }: Props) => {
+
+const RadioButton = ({ label, selected, onSelect, disabled, style }: Props) => {
   return (
-    <TouchableOpacity style={styles.container} onPress={onSelect}>
+    <TouchableOpacity
+      style={styles.container}
+      onPress={onSelect}
+      disabled={disabled}
+    >
       <View style={styles.outerCircle}>
         {selected ? <View style={styles.innerCircle} /> : null}
       </View>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, style]}>{label}</Text>
     </TouchableOpacity>
   );
 };

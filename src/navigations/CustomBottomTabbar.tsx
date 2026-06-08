@@ -5,27 +5,56 @@ import { rw, rh } from '../utils/responsive';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { images } from '../utils/images';
 import { colors } from '../utils/color';
+import { useTheme } from '../context/Theme';
 
 const CustomBottomTabbar = ({ state, navigation }: BottomTabBarProps) => {
+  const { currentTheme, themeMode } = useTheme();
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: currentTheme.card }]}>
       {state.routes.map((route, index) => {
         const isFocused = state.index === index;
 
         let iconSource;
 
         if (route.name === 'Home') {
-          iconSource = isFocused ? images.activeHome : images.home;
+          if (themeMode === 'dark') {
+            iconSource = isFocused ? images.whiteActiveHome : images.whiteHome;
+          } else {
+            iconSource = isFocused ? images.activeHome : images.home;
+          }
         } else if (route.name === 'Search') {
-          iconSource = isFocused ? images.activeSearch : images.search;
+          if (themeMode === 'dark') {
+            iconSource = isFocused
+              ? images.whiteActiveSearch
+              : images.whiteSearch;
+          } else {
+            iconSource = isFocused ? images.activeSearch : images.search;
+          }
         } else if (route.name === 'AddPost') {
-          iconSource = isFocused ? images.activeAddPost : images.addPost;
+          if (themeMode === 'dark') {
+            iconSource = isFocused
+              ? images.whiteActiveAddPost
+              : images.whiteAddPost;
+          } else {
+            iconSource = isFocused ? images.activeAddPost : images.addPost;
+          }
         } else if (route.name === 'Notification') {
-          iconSource = isFocused
-            ? images.activeNotification
-            : images.notification;
+          if (themeMode === 'dark') {
+            iconSource = isFocused
+              ? images.whiteActiveNotification
+              : images.whiteNotification;
+          } else {
+            iconSource = isFocused
+              ? images.activeNotification
+              : images.notification;
+          }
         } else if (route.name === 'Profile') {
-          iconSource = isFocused ? images.activeProfile : images.profile;
+          if (themeMode === 'dark') {
+            iconSource = isFocused ? images.whiteUser : images.whiteActiveUser;
+          } else {
+            iconSource = isFocused ? images.activeProfile : images.profile;
+          }
         }
         const onPress = () => {
           if (!isFocused) {
@@ -74,6 +103,5 @@ const styles = StyleSheet.create({
   image: {
     width: rw(25),
     height: rw(25),
-    tintColor: colors.black,
   },
 });

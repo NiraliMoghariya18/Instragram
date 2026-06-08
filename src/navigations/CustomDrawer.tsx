@@ -1,5 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  StatusBar,
+  Switch,
+} from 'react-native';
 import {
   DrawerContentComponentProps,
   DrawerContentScrollView,
@@ -7,11 +14,15 @@ import {
 import { rf, rh, rw } from '../utils/responsive';
 import { colors } from '../utils/color';
 import auth from '@react-native-firebase/auth';
+import { strings } from '../utils/strings';
+import { useTheme } from '../context/Theme';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export function CustomDrawerContent(props: DrawerContentComponentProps) {
   const drawerState = props.state;
   const tabState = drawerState.routes[drawerState.index]?.state;
   const activeTab = tabState?.routeNames?.[tabState?.index ?? 0];
+  const { themeMode, currentTheme, toggleTheme } = useTheme();
 
   const onPressHome = () => {
     props.navigation.navigate('BottomTabNavigation', {
@@ -39,11 +50,29 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
     });
   };
 
+  const onSignOut = async () => {
+    await auth().signOut();
+    await props.navigation.navigate('Login');
+  };
+
   return (
-    <View style={styles.flex}>
+    <SafeAreaView
+      style={[styles.flex, { backgroundColor: currentTheme.background }]}
+    >
+      <StatusBar
+        barStyle={themeMode === 'dark' ? 'light-content' : 'dark-content'}
+      />
+      <Switch
+        value={themeMode === 'dark'}
+        onValueChange={toggleTheme}
+        trackColor={{ false: colors.gray, true: colors.blue }}
+        thumbColor={themeMode === 'dark' ? colors.yellow : colors.yellow_white}
+        style={styles.switchStyle}
+      />
       <DrawerContentScrollView
         {...props}
         contentContainerStyle={styles.containerStyle}
+        showsVerticalScrollIndicator={false}
       >
         <View style={styles.gap}>
           <View>
@@ -52,7 +81,17 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
                 style={[styles.item, activeTab === 'Home' && styles.activeItem]}
                 onPress={() => onPressHome()}
               >
-                <Text style={styles.itemText}>Home</Text>
+                <Text
+                  style={[
+                    styles.itemText,
+                    {
+                      color:
+                        activeTab === 'Home' ? colors.black : currentTheme.text,
+                    },
+                  ]}
+                >
+                  {strings.home}
+                </Text>
               </TouchableOpacity>
             </View>
             <View style={styles.menu}>
@@ -63,7 +102,19 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
                 ]}
                 onPress={() => onPressSearch()}
               >
-                <Text style={styles.itemText}>Search</Text>
+                <Text
+                  style={[
+                    styles.itemText,
+                    {
+                      color:
+                        activeTab === 'Search'
+                          ? colors.black
+                          : currentTheme.text,
+                    },
+                  ]}
+                >
+                  {strings.search}
+                </Text>
               </TouchableOpacity>
             </View>
             <View style={styles.menu}>
@@ -74,7 +125,19 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
                 ]}
                 onPress={() => onPressAddPost()}
               >
-                <Text style={styles.itemText}>Add Post</Text>
+                <Text
+                  style={[
+                    styles.itemText,
+                    {
+                      color:
+                        activeTab === 'AddPost'
+                          ? colors.black
+                          : currentTheme.text,
+                    },
+                  ]}
+                >
+                  {strings.add_post}
+                </Text>
               </TouchableOpacity>
             </View>
             <View style={styles.menu}>
@@ -85,7 +148,19 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
                 ]}
                 onPress={() => onPressNotification()}
               >
-                <Text style={styles.itemText}>Notification</Text>
+                <Text
+                  style={[
+                    styles.itemText,
+                    {
+                      color:
+                        activeTab === 'Notification'
+                          ? colors.black
+                          : currentTheme.text,
+                    },
+                  ]}
+                >
+                  {strings.notification}
+                </Text>
               </TouchableOpacity>
             </View>
             <View style={styles.menu}>
@@ -96,19 +171,28 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
                 ]}
                 onPress={() => onPressProfile()}
               >
-                <Text style={styles.itemText}>Profile</Text>
+                <Text
+                  style={[
+                    styles.itemText,
+                    {
+                      color:
+                        activeTab === 'Profile'
+                          ? colors.black
+                          : currentTheme.text,
+                    },
+                  ]}
+                >
+                  {strings.profile}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
-          <TouchableOpacity
-            onPress={() => auth().signOut()}
-            style={styles.logOutView}
-          >
-            <Text style={styles.logOutText}>Logout</Text>
+          <TouchableOpacity onPress={onSignOut} style={styles.logOutView}>
+            <Text style={styles.logOutText}>{strings.logout}</Text>
           </TouchableOpacity>
         </View>
       </DrawerContentScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -121,7 +205,8 @@ const styles = StyleSheet.create({
   },
   flex: { flex: 1 },
   containerStyle: { flexGrow: 1, justifyContent: 'space-between' },
-  gap: { gap: rh(370) },
+  gap: { gap: rh(300) },
+  switchStyle: { alignSelf: 'flex-end', marginRight: rh(15) },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -136,7 +221,7 @@ const styles = StyleSheet.create({
   },
   itemText: {
     fontSize: rf(17),
-    color: colors.black,
+    // color: colors.black,
     fontWeight: '500',
   },
   logOutView: {

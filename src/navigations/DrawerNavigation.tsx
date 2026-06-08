@@ -25,10 +25,6 @@ const DrawerNavigation = () => {
     <Drawer.Navigator
       drawerContent={drawer}
       screenOptions={{
-        // headerTintColor: 'white',
-        // headerStyle: {
-        //   backgroundColor: '#26236e',
-        // },
         drawerStyle: {
           width: rw(320),
         },
