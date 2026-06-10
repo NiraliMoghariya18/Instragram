@@ -60,7 +60,7 @@ const Login = () => {
     GoogleSignin.configure({
       webClientId:
         '437698094226-7f1n74ks1n7psic47j0b05u3q3joh8kr.apps.googleusercontent.com',
-      offlineAccess: true,
+      offlineAccess: false,
     });
   }, []);
   const validate = () => {
@@ -93,6 +93,8 @@ const Login = () => {
 
     try {
       await auth().signInWithEmailAndPassword(email, password);
+
+      navigation.navigate('DrawerNavigation');
       console.log('Login Success & Token Updated');
     } catch (error: unknown) {
       if (error instanceof Error) {

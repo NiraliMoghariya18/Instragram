@@ -34,11 +34,7 @@ const CustomButton = ({
       onPress={onPress}
       activeOpacity={0.5}
     >
-      {leftImage && (
-        <TouchableOpacity activeOpacity={0.7}>
-          <Image source={leftImage} style={[imageStyle]} />
-        </TouchableOpacity>
-      )}
+      {leftImage && <Image source={leftImage} style={[imageStyle]} />}
       <Text style={[styles.buttonText, textStyle]}>{label}</Text>
     </TouchableOpacity>
   );

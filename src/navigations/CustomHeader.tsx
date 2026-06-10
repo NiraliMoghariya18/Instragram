@@ -9,7 +9,7 @@ import { strings } from '../utils/strings';
 
 const CustomHeader = ({ navigation }: DrawerHeaderProps) => {
   return (
-    <SafeAreaView>
+    <SafeAreaView edges={['top']}>
       <View style={[styles.headerContainer]}>
         <TouchableOpacity
           style={styles.left}
