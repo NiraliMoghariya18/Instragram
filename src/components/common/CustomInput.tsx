@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { rf, rh, rw } from '../../utils/responsive';
 import { colors } from '../../utils/color';
+import { useTheme } from '../../context/Theme';
 
 interface Props {
   placeholderTextColor?: string;
@@ -51,6 +52,8 @@ const CustomInput = ({
   onPressIn,
   variant,
 }: Props) => {
+  const { currentTheme } = useTheme();
+
   return (
     <View style={styles.mainContainer}>
       {label && <Text style={styles.inputLabel}>{label}</Text>}
@@ -68,7 +71,7 @@ const CustomInput = ({
           placeholder={placeholder}
           multiline={multiline}
           numberOfLines={numberOfLines}
-          style={styles.textInput}
+          style={[styles.textInput, { color: currentTheme.text }]}
           onChangeText={onChangeText}
           secureTextEntry={secureTextEntry}
           editable={editable}
@@ -109,7 +112,6 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     height: rh(50),
-    color: '#000',
   },
   defaultImage: {
     width: rw(24),

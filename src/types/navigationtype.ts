@@ -1,3 +1,5 @@
+import { User } from './screens';
+
 export type StackRootScreen = {
   SignUp?: {
     email?: string;
@@ -5,9 +7,13 @@ export type StackRootScreen = {
     lastName: string;
     isGoogleUser: boolean;
   };
+
   Login: undefined;
   DrawerNavigation?: {
     screen: string;
     params: { screen: string };
   };
+  EditProfile?: { userData: User; isEdit: boolean };
+  Followers: { followers: string[] };
+  Following: { following: string[] };
 };

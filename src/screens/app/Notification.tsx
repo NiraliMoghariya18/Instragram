@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   StyleSheet,
@@ -15,23 +16,12 @@ import { rf, rh, rw } from '../../utils/responsive';
 import { colors } from '../../utils/color';
 import Toast from 'react-native-toast-message';
 import { strings } from '../../utils/strings';
-
-interface RequestType {
-  id: string;
-  senderId: string;
-  receiverId: string;
-  status: 'pending' | 'accepted';
-
-  senderData?: {
-    firstName: string;
-    lastName: string;
-    username: string;
-    profileImage: string;
-  };
-}
+import { useTheme } from '../../context/Theme';
+import { RequestType } from '../../types/screens';
 
 const Notification = () => {
   const currentUserId = auth().currentUser?.uid;
+  const { currentTheme } = useTheme();
 
   const [requests, setRequests] = useState<RequestType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,7 +103,7 @@ const Notification = () => {
       handleSuccess(firstName);
       await batch.commit();
     } catch (error) {
-      console.error('Error accepting follow request:', error);
+      console.error('Error:', error);
     }
   };
 
@@ -131,7 +121,7 @@ const Notification = () => {
   const renderItem = ({ item }: { item: RequestType }) => {
     const name = item.senderData?.firstName ?? '';
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: currentTheme.card }]}>
         <View style={styles.leftContainer}>
           <Image
             source={{
@@ -140,10 +130,13 @@ const Notification = () => {
             style={styles.image}
           />
           <View>
-            <Text style={styles.username}>
+            <Text style={[styles.username, { color: currentTheme.text }]}>
               {item.senderData?.firstName || ''}
             </Text>
-            <Text style={styles.name}>{item.senderData?.lastName}</Text>
+            <Text style={[styles.name, { color: currentTheme.text }]}>
+              {item.senderData?.firstName || ''}
+              {item.senderData?.lastName}
+            </Text>
           </View>
         </View>
         <View style={styles.buttonContainer}>
@@ -168,43 +161,31 @@ const Notification = () => {
     if (loading) {
       return (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>{strings.loading}</Text>
+          <ActivityIndicator size={'large'} />
         </View>
       );
     }
 
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>{strings.noNotification}</Text>
+        <Text style={[styles.emptyText, { color: currentTheme.text }]}>
+          {strings.noNotification}
+        </Text>
       </View>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, { backgroundColor: currentTheme.background }]}
+    >
       <FlatList
         data={requests}
         keyExtractor={item => item.id}
         renderItem={renderItem}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingBottom: 20,
-        }}
-        ListEmptyComponent={() => {
-          if (loading) {
-            return (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>{strings.loading}</Text>
-              </View>
-            );
-          }
-
-          return (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>{strings.noNotification}</Text>
-            </View>
-          );
-        }}
+        contentContainerStyle={styles.contentContainerStyle}
+        ListEmptyComponent={ListEmptyComponent}
       />
     </View>
   );
@@ -220,11 +201,11 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: rw(10),
     padding: rh(15),
-    marginVertical: rh(15),
+    marginVertical: rh(5),
     backgroundColor: colors.white,
     marginHorizontal: rw(10),
 
-    shadowColor: '#837e7e',
+    shadowColor: colors.lightGray,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -251,7 +232,7 @@ const styles = StyleSheet.create({
 
   name: {
     fontSize: rf(14),
-    color: '#999',
+    color: colors.lightGray,
     marginTop: rh(3),
   },
 
@@ -261,7 +242,7 @@ const styles = StyleSheet.create({
   },
 
   acceptButton: {
-    backgroundColor: '#0095f6',
+    backgroundColor: colors.blue,
     paddingHorizontal: rw(18),
     paddingVertical: rh(10),
     borderRadius: rw(8),
@@ -271,7 +252,7 @@ const styles = StyleSheet.create({
   },
 
   cancelButton: {
-    backgroundColor: '#dbdbdb',
+    backgroundColor: colors.mediumDarkGray,
     paddingHorizontal: rw(18),
     paddingVertical: rh(10),
     borderRadius: rw(8),
@@ -295,7 +276,11 @@ const styles = StyleSheet.create({
   },
 
   emptyText: {
-    color: '#777',
+    color: colors.gray,
     fontSize: rf(16),
+  },
+  contentContainerStyle: {
+    paddingBottom: rh(20),
+    marginTop: rh(20),
   },
 });

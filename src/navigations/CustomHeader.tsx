@@ -6,22 +6,37 @@ import { images } from '../utils/images';
 import { colors } from '../utils/color';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { strings } from '../utils/strings';
+import { useTheme } from '../context/Theme';
 
 const CustomHeader = ({ navigation }: DrawerHeaderProps) => {
+  const { currentTheme } = useTheme();
+
   return (
-    <SafeAreaView edges={['top']}>
-      <View style={[styles.headerContainer]}>
+    <SafeAreaView
+      edges={['top']}
+      style={{ backgroundColor: currentTheme.background }}
+    >
+      <View
+        style={[
+          styles.headerContainer,
+          { backgroundColor: currentTheme.background },
+        ]}
+      >
         <TouchableOpacity
           style={styles.left}
           onPress={() => navigation.openDrawer()}
         >
-          <Image
-            source={images.menu}
-            style={styles.icon}
-            resizeMode="contain"
-          />
+          <>
+            <Image
+              source={images.menu}
+              style={[styles.icon, { tintColor: currentTheme.text }]}
+              resizeMode="contain"
+            />
+          </>
         </TouchableOpacity>
-        <Text style={styles.instagramText}>{strings.instagram}</Text>
+        <Text style={[styles.instagramText, { color: currentTheme.text }]}>
+          {strings.instagram}
+        </Text>
       </View>
     </SafeAreaView>
   );

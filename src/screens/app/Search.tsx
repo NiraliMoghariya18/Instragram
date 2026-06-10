@@ -1,15 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
-
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Image,
+  RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
-
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import CustomInput from '../../components/common/CustomInput';
@@ -17,42 +14,27 @@ import { rf, rh, rw } from '../../utils/responsive';
 import { colors } from '../../utils/color';
 import Toast from 'react-native-toast-message';
 import { strings } from '../../utils/strings';
-
-interface UserType {
-  id: string;
-  firstName: string;
-  lastName: string;
-  username: string;
-  profileImage: string;
-  followStatus?: 'none' | 'pending' | 'accepted' | 'follow_back';
-}
-
-interface User {
-  createdAt?: { _seconds: number; _nanoseconds: number };
-  dob?: string;
-  email?: string;
-  firstName: string;
-  followStatus?: 'none' | 'pending' | 'accepted' | 'follow_back';
-  username: string;
-  id: string;
-  lastName: string;
-
-  profileImage: string;
-  followers?: string[];
-  following?: string[];
-  gender?: string;
-  phoneNo?: string;
-}
+import { useTheme } from '../../context/Theme';
+import { SearchUser, UserType } from '../../types/screens';
+import { CustomCard } from '../../components/common/CustomCard';
 
 const Search = () => {
   const currentUserId = auth().currentUser?.uid;
-
+  const { themeMode, currentTheme } = useTheme();
   const [search, setSearch] = useState<string>('');
   const [users, setUsers] = useState<UserType[]>([]);
+  const [searchUser, setSearchUser] = useState<UserType[]>([]);
   const [loading, setLoading] = useState(false);
-
+  const [searchLoading, setSearchLoading] = useState(false);
   const debounceRef = useRef<number | null>(null);
-  console.log('debounceRef :>> ', debounceRef);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await getUsers();
+    setRefreshing(false);
+  }, []);
+
   const handleSuccess = (firstName: string) => {
     Toast.show({
       type: 'success',
@@ -64,8 +46,9 @@ const Search = () => {
     const { Filter } = firestore;
 
     try {
-      setLoading(true);
+      setSearchLoading(true);
       const searchWord = text.toLowerCase();
+
       const querySnapshot = await firestore()
         .collection('users')
         .where(
@@ -83,6 +66,8 @@ const Search = () => {
         }))
         .filter(item => item.id !== currentUserId);
 
+      console.log('rawUsers :>> ', rawUsers);
+
       const unsubscribe = firestore()
         .collection('followRequests')
         .onSnapshot(snapshot => {
@@ -99,7 +84,7 @@ const Search = () => {
             }
           });
 
-          const usersWithStatus: User[] = rawUsers.map(user => {
+          const usersWithStatus: SearchUser[] = rawUsers.map(user => {
             const myStatusToThem = outgoingStatus[user.id] || 'none';
             const theirStatusToMe = incomingStatus[user.id] || 'none';
 
@@ -127,19 +112,20 @@ const Search = () => {
             };
           });
 
-          setUsers(usersWithStatus);
-          setLoading(false);
+          setSearchUser(usersWithStatus);
+          setSearchLoading(false);
         });
 
       return unsubscribe;
     } catch (error) {
       console.log(error);
-      setLoading(false);
+      setSearchLoading(false);
     }
   };
 
   const getUsers = async () => {
     try {
+      setLoading(true);
       const snapshot = await firestore().collection('users').get();
 
       const rawUsers = snapshot.docs
@@ -165,7 +151,7 @@ const Search = () => {
             }
           });
 
-          const usersWithStatus: User[] = rawUsers.map(user => {
+          const usersWithStatus: SearchUser[] = rawUsers.map(user => {
             const myStatusToThem = outgoingStatus[user.id] || 'none';
             const theirStatusToMe = incomingStatus[user.id] || 'none';
 
@@ -208,11 +194,12 @@ const Search = () => {
     }
 
     if (search.trim().length > 0) {
+      setSearchLoading(true);
       debounceRef.current = setTimeout(() => {
         searchUsers(search);
-      }, 500);
+      }, 2000);
     } else {
-      setUsers([]);
+      setSearchUser([]);
     }
 
     return () => {
@@ -221,6 +208,37 @@ const Search = () => {
       }
     };
   }, [search]);
+
+  const unfollowUser = async (targetUserId: string) => {
+    try {
+      const currentUserId = auth().currentUser?.uid;
+      if (!currentUserId) return;
+
+      const batch = firestore().batch();
+
+      const myRef = firestore().collection('users').doc(currentUserId);
+      const targetRef = firestore().collection('users').doc(targetUserId);
+
+      const requestDocId = `${currentUserId}_${targetUserId}`;
+      const requestRef = firestore()
+        .collection('followRequests')
+        .doc(requestDocId);
+
+      batch.update(myRef, {
+        following: firestore.FieldValue.arrayRemove(targetUserId),
+      });
+
+      batch.update(targetRef, {
+        followers: firestore.FieldValue.arrayRemove(currentUserId),
+      });
+
+      batch.delete(requestRef);
+
+      await batch.commit();
+    } catch (error) {
+      console.log('Error during unfollow process:', error);
+    }
+  };
 
   const sendFollowRequest = async (receiverId: string, firstName: string) => {
     try {
@@ -232,20 +250,15 @@ const Search = () => {
         ),
       );
 
-      const snapshot = await firestore()
-        .collection('followRequests')
-        .where('senderId', '==', currentUserId)
-        .where('receiverId', '==', receiverId)
-        .get();
+      const requestDocId = `${currentUserId}_${receiverId}`;
 
-      if (!snapshot.empty) return;
-
-      await firestore().collection('followRequests').add({
+      await firestore().collection('followRequests').doc(requestDocId).set({
         senderId: currentUserId,
         receiverId,
         status: 'pending',
         createdAt: firestore.FieldValue.serverTimestamp(),
       });
+
       handleSuccess(firstName);
     } catch (error) {
       console.log(error);
@@ -253,6 +266,41 @@ const Search = () => {
       setUsers(prevUsers =>
         prevUsers.map(user =>
           user.id === receiverId ? { ...user, followStatus: 'none' } : user,
+        ),
+      );
+    }
+  };
+
+  const cancelFollowRequest = async (receiverId: string) => {
+    try {
+      if (!currentUserId) return;
+
+      setUsers(prevUsers =>
+        prevUsers.map(user =>
+          user.id === receiverId ? { ...user, followStatus: 'none' } : user,
+        ),
+      );
+
+      const snapshot = await firestore()
+        .collection('followRequests')
+        .where('senderId', '==', currentUserId)
+        .where('receiverId', '==', receiverId)
+        .where('status', '==', 'pending')
+        .get();
+
+      if (!snapshot.empty) {
+        const batch = firestore().batch();
+        snapshot.docs.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+      }
+    } catch (error) {
+      console.log('Error', error);
+
+      setUsers(prevUsers =>
+        prevUsers.map(user =>
+          user.id === receiverId ? { ...user, followStatus: 'pending' } : user,
         ),
       );
     }
@@ -266,44 +314,34 @@ const Search = () => {
     const status = item.followStatus || 'none';
 
     return (
-      <View style={styles.userContainer}>
-        <View style={styles.leftContainer}>
-          <Image
-            source={{ uri: item.profileImage }}
-            style={styles.profileImage}
-          />
-          <View>
-            <Text style={styles.username}>{item.firstName}</Text>
-            <Text style={styles.name}>
-              {item.firstName} {item.lastName}
-            </Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          disabled={status === 'pending' || status === 'accepted'}
-          style={[
-            styles.followButton,
-            status === 'accepted' && styles.followingButton,
-          ]}
-          onPress={() => sendFollowRequest(item.id, item.firstName)}
-        >
-          <Text
-            style={[
-              styles.followText,
-              status === 'accepted' && styles.followingText,
-            ]}
-          >
-            {status === 'accepted'
+      <>
+        <CustomCard
+          firstName={item.firstName}
+          lastName={item.lastName}
+          image={item.profileImage}
+          onPress={() => {
+            if (status === 'pending') {
+              cancelFollowRequest(item.id);
+            } else if (status === 'accepted') {
+              unfollowUser(item.id);
+            } else {
+              sendFollowRequest(item.id, item.firstName);
+            }
+          }}
+          textStyle={status === 'accepted' && styles.followingText}
+          btnStyle={status === 'accepted' && styles.followingButton}
+          ButtonName={
+            status === 'accepted'
               ? 'Followed'
               : status === 'pending'
-              ? 'Requested'
+              ? 'Cancel Requested'
               : status === 'follow_back'
               ? 'Follow Back'
-              : 'Follow'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+              : 'Follow'
+          }
+          disable={status === 'accepted' && true}
+        />
+      </>
     );
   };
 
@@ -319,21 +357,41 @@ const Search = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, { backgroundColor: currentTheme.background }]}
+    >
       <CustomInput
         value={search}
         onChangeText={setSearch}
         placeholder="Search users..."
         variant="primary"
-        style={styles.searchInput}
+        placeholderTextColor={currentTheme.text}
+        style={[
+          styles.searchInput,
+          {
+            backgroundColor:
+              themeMode === 'dark' ? currentTheme.background : undefined,
+          },
+        ]}
       />
 
       {search.length === 0 ? (
         <>
-          <View style={styles.suggestedAccountView}>
-            <Text style={styles.suggestedAccountText}>
+          <View
+            style={[
+              styles.suggestedAccountView,
+              { backgroundColor: currentTheme.background },
+            ]}
+          >
+            <Text
+              style={[
+                styles.suggestedAccountText,
+                { color: currentTheme.text },
+              ]}
+            >
               {strings.suggested_account}
             </Text>
+
             <FlatList
               data={users}
               keyExtractor={item => item.id}
@@ -341,25 +399,36 @@ const Search = () => {
               style={styles.flatList}
               showsVerticalScrollIndicator={false}
               ListEmptyComponent={ListEmptyComponentData}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
             />
           </View>
         </>
       ) : (
         <>
-          <FlatList
-            data={users}
-            keyExtractor={item => item.id}
-            renderItem={renderItem}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={ListEmptyComponentData}
-            style={styles.mH25}
-          />
+          {searchLoading ? (
+            <>
+              <ActivityIndicator size={'large'} color={'blue'} />
+            </>
+          ) : (
+            <>
+              <FlatList
+                data={searchUser}
+                keyExtractor={item => item.id}
+                renderItem={renderItem}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                style={styles.mH25}
+              />
+            </>
+          )}
         </>
       )}
     </View>
   );
 };
+
 export default Search;
 
 const styles = StyleSheet.create({
@@ -374,66 +443,11 @@ const styles = StyleSheet.create({
     marginTop: rh(15),
   },
 
-  userContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: rh(20),
-    paddingHorizontal: rw(15),
-    paddingVertical: rh(10),
-    backgroundColor: colors.white,
-    borderRadius: rw(10),
-
-    shadowColor: '#837e7e',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-
-    elevation: 8,
-  },
-
-  leftContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  profileImage: {
-    width: rw(55),
-    height: rw(55),
-    borderRadius: rw(100),
-    marginRight: rw(12),
-  },
-
-  username: {
-    fontSize: rf(16),
-    fontWeight: '700',
-    textTransform: 'capitalize',
-  },
-
-  name: {
-    fontSize: rf(14),
-    textTransform: 'capitalize',
-  },
-
-  followButton: {
-    backgroundColor: '#0095f6',
-    paddingHorizontal: rw(18),
-    paddingVertical: rh(8),
-    borderRadius: rw(8),
-    minWidth: rw(100),
-    alignItems: 'center',
-  },
-
   followingButton: {
-    backgroundColor: '#dbdbdb',
+    backgroundColor: colors.mediumDarkGray,
   },
   followingText: {
-    color: 'black',
-  },
-
-  followText: {
-    color: '#fff',
-    fontWeight: '600',
+    color: colors.black,
   },
 
   emptyContainer: {
@@ -443,7 +457,7 @@ const styles = StyleSheet.create({
   },
 
   emptyText: {
-    color: '#777',
+    color: colors.gray,
     fontSize: rf(16),
   },
   suggestedAccountView: {

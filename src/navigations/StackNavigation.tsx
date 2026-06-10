@@ -6,17 +6,13 @@ import DrawerNavigation from './DrawerNavigation';
 import { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { StackRootScreen } from '../types/navigationtype';
 import auth from '@react-native-firebase/auth';
+import EditProfile from '../screens/app/EditProfile';
+import Followers from '../screens/app/Followers';
+import Following from '../screens/app/Following';
 
 const Stack = createStackNavigator<StackRootScreen>();
 
 const StackNavigation = () => {
-  // const users = auth();
-  // const auths = getAuth();
-  // console.log('auth :>> ', auths.currentUser?.email);
-  // const users = auths.currentUser?.email;
-  // console.log(' users:>> ', users);
-  const users = auth().currentUser;
-  console.log('users :>> ', users);
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -47,6 +43,11 @@ const StackNavigation = () => {
         }}
       />
       <Stack.Screen
+        name="EditProfile"
+        component={EditProfile}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
         name="Login"
         component={Login}
         options={{ headerShown: false }}
@@ -54,6 +55,16 @@ const StackNavigation = () => {
       <Stack.Screen
         name="SignUp"
         component={SignUp}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Followers"
+        component={Followers}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Following"
+        component={Following}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

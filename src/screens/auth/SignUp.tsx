@@ -239,7 +239,6 @@ const SignUp = () => {
     setGender(selectedGender);
     if (errors.gender) setErrors(prev => ({ ...prev, gender: '' }));
   };
-  // const [selectedOption, setSelectedOption] = useState('Option 1');
   return (
     <KeyboardAvoidingView style={styles.container}>
       <SafeAreaView>
@@ -304,7 +303,6 @@ const SignUp = () => {
             placeholder={strings.dob}
             placeholderTextColor={colors.lightGray}
             value={moment(date).format('YYYY-MM-DD')}
-            // editable={false}
             onPressIn={() => setOpen(true)}
             error={errors.dob}
           />
@@ -414,7 +412,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.blueGray,
-    marginVertical: 10,
+    marginVertical: rh(10),
     borderRadius: rw(100),
   },
   preview: {

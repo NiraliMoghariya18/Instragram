@@ -95,7 +95,6 @@ const Login = () => {
       await auth().signInWithEmailAndPassword(email, password);
 
       navigation.navigate('DrawerNavigation');
-      console.log('Login Success & Token Updated');
     } catch (error: unknown) {
       if (error instanceof Error) {
         Alert.alert(error.message);
