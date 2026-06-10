@@ -1,5 +1,13 @@
 export type StackRootScreen = {
-  SignUp: undefined;
+  SignUp?: {
+    email?: string;
+    firstName: string;
+    lastName: string;
+    isGoogleUser: boolean;
+  };
   Login: undefined;
-  DrawerNavigation: undefined;
+  DrawerNavigation?: {
+    screen: string;
+    params: { screen: string };
+  };
 };
