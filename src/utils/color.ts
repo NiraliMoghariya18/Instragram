@@ -13,4 +13,9 @@ export const colors = {
   brown: '#3e3e3e',
   light_blue: '#3792FC',
   offGray: '#E2E5E9',
+  darkBackground: '#222222',
+  lightBackground: '#F4F4F4',
+  lightCard: '#F2F2F2',
+  darkCard: '#121212',
+  darkButton: '#2f2e2e',
 };

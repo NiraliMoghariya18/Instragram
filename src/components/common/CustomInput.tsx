@@ -10,10 +10,12 @@ import {
   ImageSourcePropType,
   ImageStyle,
   TouchableOpacity,
+  I18nManager,
 } from 'react-native';
 import { rf, rh, rw } from '../../utils/responsive';
 import { colors } from '../../utils/color';
 import { useTheme } from '../../context/Theme';
+import { Theme } from '../../types/screens';
 
 interface Props {
   placeholderTextColor?: string;
@@ -53,7 +55,8 @@ const CustomInput = ({
   variant,
 }: Props) => {
   const { currentTheme } = useTheme();
-
+  const isRTL = I18nManager.isRTL;
+  const styles = inlineStyle(isRTL, currentTheme);
   return (
     <View style={styles.mainContainer}>
       {label && <Text style={styles.inputLabel}>{label}</Text>}
@@ -71,7 +74,7 @@ const CustomInput = ({
           placeholder={placeholder}
           multiline={multiline}
           numberOfLines={numberOfLines}
-          style={[styles.textInput, { color: currentTheme.text }]}
+          style={[styles.textInput]}
           onChangeText={onChangeText}
           secureTextEntry={secureTextEntry}
           editable={editable}
@@ -92,47 +95,50 @@ const CustomInput = ({
   );
 };
 
-const styles = StyleSheet.create({
-  mainContainer: {
-    marginHorizontal: rw(28),
-    marginBottom: rh(20),
-  },
-  inputLabel: {
-    fontSize: rf(14),
-    marginBottom: rh(5),
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.offWhite,
-    borderRadius: rw(4),
-    paddingHorizontal: rw(15),
-    borderColor: colors.blueGray,
-  },
-  textInput: {
-    flex: 1,
-    height: rh(50),
-  },
-  defaultImage: {
-    width: rw(24),
-    height: rh(24),
-    resizeMode: 'contain',
-    marginLeft: rw(10),
-  },
-  errorText: {
-    fontSize: rf(12),
-    color: colors.red,
-    marginTop: rh(5),
-  },
-  primaryBorder: {
-    borderWidth: 1,
-    borderColor: colors.blueGray,
-  },
+const inlineStyle = (isRTL: boolean, currentTheme: Theme) =>
+  StyleSheet.create({
+    mainContainer: {
+      marginHorizontal: rw(28),
+      marginBottom: rh(20),
+    },
+    inputLabel: {
+      fontSize: rf(14),
+      marginBottom: rh(5),
+    },
+    inputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.offWhite,
+      borderRadius: rw(4),
+      paddingHorizontal: rw(15),
+      borderColor: colors.blueGray,
+    },
+    textInput: {
+      flex: 1,
+      height: rh(50),
+      textAlign: isRTL ? 'right' : 'left',
+      color: currentTheme.text,
+    },
+    defaultImage: {
+      width: rw(24),
+      height: rh(24),
+      resizeMode: 'contain',
+      marginLeft: rw(10),
+    },
+    errorText: {
+      fontSize: rf(12),
+      color: colors.red,
+      marginTop: rh(5),
+    },
+    primaryBorder: {
+      borderWidth: 1,
+      borderColor: colors.blueGray,
+    },
 
-  secondaryBorder: {
-    borderBottomWidth: 2,
-    borderColor: colors.blueGray,
-  },
-});
+    secondaryBorder: {
+      borderBottomWidth: 2,
+      borderColor: colors.blueGray,
+    },
+  });
 
 export default CustomInput;

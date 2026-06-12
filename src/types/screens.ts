@@ -99,3 +99,10 @@ export interface SearchUser {
   gender?: string;
   phoneNo?: string;
 }
+
+export interface Theme {
+  background: string;
+  card: string;
+  googleButton: string;
+  text: string;
+}

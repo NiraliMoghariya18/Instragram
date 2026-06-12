@@ -14,15 +14,20 @@ import {
 import { rf, rh, rw } from '../utils/responsive';
 import { colors } from '../utils/color';
 import auth from '@react-native-firebase/auth';
-import { strings } from '../utils/strings';
 import { useTheme } from '../context/Theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import firestore from '@react-native-firebase/firestore';
+import { useTranslation } from 'react-i18next';
+import { Theme } from '../types/screens';
 
 export function CustomDrawerContent(props: DrawerContentComponentProps) {
   const drawerState = props.state;
   const tabState = drawerState.routes[drawerState.index]?.state;
   const activeTab = tabState?.routeNames?.[tabState?.index ?? 0];
   const { themeMode, currentTheme, toggleTheme } = useTheme();
+  const { t } = useTranslation();
+
+  const styles = inlineStyle(currentTheme);
 
   const onPressHome = () => {
     props.navigation.navigate('BottomTabNavigation', {
@@ -51,14 +56,21 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
   };
 
   const onSignOut = async () => {
-    await auth().signOut();
-    await props.navigation.navigate('Login');
+    try {
+      let uid = auth().currentUser?.uid;
+      await firestore().collection('users').doc(uid).update({
+        fcmToken: firestore.FieldValue.delete(),
+      });
+
+      await auth().signOut();
+      await props.navigation.navigate('Login');
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
   };
 
   return (
-    <SafeAreaView
-      style={[styles.flex, { backgroundColor: currentTheme.background }]}
-    >
+    <SafeAreaView style={styles.flex}>
       <StatusBar
         barStyle={themeMode === 'dark' ? 'light-content' : 'dark-content'}
       />
@@ -90,7 +102,7 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
                     },
                   ]}
                 >
-                  {strings.home}
+                  {t('home')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -113,7 +125,7 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
                     },
                   ]}
                 >
-                  {strings.search}
+                  {t('search')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -136,7 +148,7 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
                     },
                   ]}
                 >
-                  {strings.add_post}
+                  {t('add_post')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -159,7 +171,7 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
                     },
                   ]}
                 >
-                  {strings.notification}
+                  {t('notification')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -182,13 +194,13 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
                     },
                   ]}
                 >
-                  {strings.profile}
+                  {t('profile')}
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
           <TouchableOpacity onPress={onSignOut} style={styles.logOutView}>
-            <Text style={styles.logOutText}>{strings.logout}</Text>
+            <Text style={styles.logOutText}>{t('logout')}</Text>
           </TouchableOpacity>
         </View>
       </DrawerContentScrollView>
@@ -196,45 +208,45 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  menu: {
-    flex: 1,
-    paddingTop: rh(2),
-    justifyContent: 'space-between',
-    alignContent: 'center',
-  },
-  flex: { flex: 1 },
-  containerStyle: { flexGrow: 1, justifyContent: 'space-between' },
-  gap: { gap: rh(300) },
-  switchStyle: { alignSelf: 'flex-end', marginRight: rh(15) },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: rh(20),
-    paddingHorizontal: rw(30),
-    borderRadius: rw(10),
-    marginHorizontal: rw(3),
-    marginBottom: rh(0.8),
-  },
-  activeItem: {
-    backgroundColor: colors.offGray,
-  },
-  itemText: {
-    fontSize: rf(17),
-    // color: colors.black,
-    fontWeight: '500',
-  },
-  logOutView: {
-    marginHorizontal: rw(20),
-    marginVertical: rh(10),
-    backgroundColor: colors.red,
-    borderRadius: rw(10),
-    alignSelf: 'flex-end',
-  },
-  logOutText: {
-    paddingVertical: rh(10),
-    paddingHorizontal: rw(20),
-    textAlign: 'right',
-    fontSize: rf(20),
-  },
-});
+const inlineStyle = (currentTheme: Theme) =>
+  StyleSheet.create({
+    menu: {
+      flex: 1,
+      paddingTop: rh(2),
+      justifyContent: 'space-between',
+      alignContent: 'center',
+    },
+
+    flex: { flex: 1, backgroundColor: currentTheme.background },
+    containerStyle: { flexGrow: 1, justifyContent: 'space-between' },
+    gap: { gap: rh(300) },
+    switchStyle: { alignSelf: 'flex-end', marginRight: rh(15) },
+    item: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: rh(20),
+      paddingHorizontal: rw(30),
+      borderRadius: rw(10),
+      marginHorizontal: rw(3),
+    },
+    activeItem: {
+      backgroundColor: colors.offGray,
+    },
+    itemText: {
+      fontSize: rf(17),
+      fontWeight: '500',
+    },
+    logOutView: {
+      marginHorizontal: rw(20),
+      marginVertical: rh(10),
+      backgroundColor: colors.red,
+      borderRadius: rw(10),
+      alignSelf: 'flex-end',
+    },
+    logOutText: {
+      paddingVertical: rh(10),
+      paddingHorizontal: rw(20),
+      textAlign: 'right',
+      fontSize: rf(20),
+    },
+  });

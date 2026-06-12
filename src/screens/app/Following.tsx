@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  RefreshControl,
+  Alert,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
 import { CustomCard } from '../../components/common/CustomCard';
-import { SearchUser, UserType } from '../../types/screens';
+import { SearchUser, Theme, UserType } from '../../types/screens';
 import Toast from 'react-native-toast-message';
 import { colors } from '../../utils/color';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,7 +21,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { StackRootScreen } from '../../types/navigationtype';
 import { useTheme } from '../../context/Theme';
 import { rf, rh, rw } from '../../utils/responsive';
-import { strings } from '../../utils/strings';
+import { useTranslation } from 'react-i18next';
 
 const Following = () => {
   const route = useRoute();
@@ -31,10 +31,28 @@ const Following = () => {
   const { currentTheme, themeMode } = useTheme();
   const currentUserId = auth().currentUser?.uid;
   const [users, setUsers] = useState<UserType[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
 
+  const { t } = useTranslation();
   const [removedUsers, setRemovedUsers] = useState<string[]>([]);
+  const handleSuccess = (firstName: string) => {
+    Toast.show({
+      type: 'success',
+      text1: t('send_follow_req', { name: firstName }),
+    });
+  };
 
+  const handleCancelReq = () => {
+    Toast.show({
+      type: 'success',
+      text1: t('cancel_req'),
+    });
+  };
+  const handleUnFollowingUser = (firstName: string) => {
+    Toast.show({
+      type: 'success',
+      text1: t('unfollow_user', { name: firstName }),
+    });
+  };
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
 
@@ -101,7 +119,9 @@ const Following = () => {
             setUsers(usersWithStatus as SearchUser[]);
           });
       } catch (error) {
-        console.log(error);
+        if (error instanceof Error) {
+          Alert.alert('Error', 'Something went wrong');
+        }
       }
     };
 
@@ -111,12 +131,6 @@ const Following = () => {
       unsubscribe?.();
     };
   }, [following, currentUserId, removedUsers]);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    // await getData();
-    setRefreshing(false);
-  }, []);
 
   const cancelFollowRequest = async (receiverId: string) => {
     try {
@@ -142,6 +156,7 @@ const Following = () => {
         });
         await batch.commit();
       }
+      handleCancelReq();
     } catch (error) {
       console.log('Error', error);
 
@@ -150,10 +165,13 @@ const Following = () => {
           user.id === receiverId ? { ...user, followStatus: 'pending' } : user,
         ),
       );
+      if (error instanceof Error) {
+        Alert.alert('Error', 'Something went wrong');
+      }
     }
   };
 
-  const unfollowingUser = async (followerId: string) => {
+  const unfollowingUser = async (followerId: string, firstName: string) => {
     try {
       if (!currentUserId) return;
 
@@ -182,18 +200,12 @@ const Following = () => {
       batch.delete(request2);
 
       await batch.commit();
-
-      console.log('Following removed');
+      handleUnFollowingUser(firstName);
     } catch (error) {
-      console.log(error);
+      if (error instanceof Error) {
+        Alert.alert('Error', 'Something went wrong');
+      }
     }
-  };
-
-  const handleSuccess = (firstName: string) => {
-    Toast.show({
-      type: 'success',
-      text1: `✅ Send to Follow Req ${firstName} `,
-    });
   };
 
   const sendFollowRequest = async (receiverId: string, firstName: string) => {
@@ -224,13 +236,25 @@ const Following = () => {
           user.id === receiverId ? { ...user, followStatus: 'none' } : user,
         ),
       );
+      if (error instanceof Error) {
+        Alert.alert('Error', 'Something went wrong');
+      }
     }
   };
+  const styles = inlineStyle(currentTheme);
 
+  const customCardPress = (id: string, firstName: string, status: string) => {
+    if (status === 'pending') {
+      cancelFollowRequest(id);
+    } else if (status === 'accepted') {
+      unfollowingUser(id, firstName);
+    } else {
+      sendFollowRequest(id, firstName);
+    }
+  };
   const renderItem = ({ item }: { item: UserType }) => {
-    console.log('item :>> ', item);
     const status = item.followStatus || 'none';
-    console.log('status :>> ', status);
+
     return (
       <View>
         <CustomCard
@@ -238,17 +262,11 @@ const Following = () => {
           lastName={item.lastName}
           image={item.profileImage}
           onPress={() => {
-            if (status === 'pending') {
-              cancelFollowRequest(item.id);
-            } else if (status === 'accepted') {
-              unfollowingUser(item.id);
-            } else {
-              sendFollowRequest(item.id, item.firstName);
-            }
+            customCardPress(item.id, item.firstName, status);
           }}
           textStyle={status === 'accepted' && styles.followingText}
           btnStyle={status === 'accepted' && styles.followingButton}
-          ButtonName={
+          buttonName={
             status === 'accepted'
               ? 'Followed'
               : status === 'pending'
@@ -259,7 +277,7 @@ const Following = () => {
           }
           closeImage={images.close}
           closeImageStyle={styles.closeImageStyle}
-          imageOnPress={() => unfollowingUser(item.id)}
+          imageOnPress={() => unfollowingUser(item.id, item.firstName)}
           disable={status === 'accepted' && true}
         />
       </View>
@@ -268,12 +286,7 @@ const Following = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View
-        style={[
-          styles.headerContainer,
-          { backgroundColor: currentTheme.background },
-        ]}
-      >
+      <View style={styles.headerContainer}>
         <TouchableOpacity
           style={styles.left}
           onPress={() => navigation.goBack()}
@@ -283,14 +296,12 @@ const Following = () => {
               source={
                 themeMode === 'light' ? images.blackBack : images.whiteBack
               }
-              style={[styles.icon, { tintColor: currentTheme.text }]}
+              style={styles.icon}
               resizeMode="contain"
             />
           </>
         </TouchableOpacity>
-        <Text style={[styles.instagramText, { color: currentTheme.text }]}>
-          {strings.following}
-        </Text>
+        <Text style={styles.instagramText}>{t('following')}</Text>
       </View>
 
       <FlatList
@@ -298,10 +309,7 @@ const Following = () => {
         renderItem={renderItem}
         keyExtractor={item => item.id}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>{strings.no_following_found}</Text>
-        }
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <Text style={styles.emptyText}>{t('no_following_found')}</Text>
         }
       />
     </SafeAreaView>
@@ -310,39 +318,49 @@ const Following = () => {
 
 export default Following;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+const inlineStyle = (currentTheme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: currentTheme.background,
+    },
 
-  followingButton: {
-    backgroundColor: colors.mediumDarkGray,
-  },
-  followingText: {
-    color: colors.black,
-  },
+    followingButton: {
+      backgroundColor: colors.mediumDarkGray,
+    },
+    followingText: {
+      color: colors.black,
+    },
 
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 50,
-    fontSize: 16,
-  },
+    emptyText: {
+      textAlign: 'center',
+      marginTop: 50,
+      fontSize: 16,
+      color: currentTheme.text,
+    },
 
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  left: {
-    position: 'absolute',
-    left: rw(20),
-  },
-  instagramText: {
-    fontSize: rf(25),
-  },
-  icon: {
-    width: rw(20),
-    height: rh(20),
-  },
-  closeImageStyle: { width: rw(15), height: rw(15) },
-});
+    headerContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: currentTheme.background,
+    },
+    left: {
+      position: 'absolute',
+      left: rw(20),
+    },
+    instagramText: {
+      fontSize: rf(25),
+      color: currentTheme.text,
+    },
+    icon: {
+      width: rw(20),
+      height: rh(20),
+      tintColor: currentTheme.text,
+    },
+    closeImageStyle: {
+      width: rw(15),
+      height: rw(15),
+      tintColor: currentTheme.text,
+    },
+  });

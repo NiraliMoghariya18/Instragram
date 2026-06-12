@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -13,14 +14,18 @@ import CustomInput from '../../components/common/CustomInput';
 import { rf, rh, rw } from '../../utils/responsive';
 import { colors } from '../../utils/color';
 import Toast from 'react-native-toast-message';
-import { strings } from '../../utils/strings';
 import { useTheme } from '../../context/Theme';
-import { SearchUser, UserType } from '../../types/screens';
+import { SearchUser, Theme, UserType } from '../../types/screens';
 import { CustomCard } from '../../components/common/CustomCard';
+import axios from 'axios';
+import { access_token } from '../../../firebaseconfig';
+import { useTranslation } from 'react-i18next';
+import CustomHeader from '../../navigations/CustomHeader';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Search = () => {
   const currentUserId = auth().currentUser?.uid;
-  const { themeMode, currentTheme } = useTheme();
+  const { currentTheme } = useTheme();
   const [search, setSearch] = useState<string>('');
   const [users, setUsers] = useState<UserType[]>([]);
   const [searchUser, setSearchUser] = useState<UserType[]>([]);
@@ -28,17 +33,31 @@ const Search = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const debounceRef = useRef<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const { t } = useTranslation();
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await getUsers();
     setRefreshing(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSuccess = (firstName: string) => {
     Toast.show({
       type: 'success',
-      text1: `✅ Send to Follow Req ${firstName} `,
+      text1: t('send_follow_req', { name: firstName }),
+    });
+  };
+  const handleCancelReq = () => {
+    Toast.show({
+      type: 'success',
+      text1: t('cancel_req'),
+    });
+  };
+  const handleUnFollowUser = (firstName: string) => {
+    Toast.show({
+      type: 'success',
+      text1: t('unfollow_user', { name: firstName }),
     });
   };
 
@@ -65,8 +84,6 @@ const Search = () => {
           ...(doc.data() as Omit<UserType, 'id'>),
         }))
         .filter(item => item.id !== currentUserId);
-
-      console.log('rawUsers :>> ', rawUsers);
 
       const unsubscribe = firestore()
         .collection('followRequests')
@@ -120,6 +137,9 @@ const Search = () => {
     } catch (error) {
       console.log(error);
       setSearchLoading(false);
+      if (error instanceof Error) {
+        Alert.alert('Error', 'Something went wrong');
+      }
     }
   };
 
@@ -137,6 +157,7 @@ const Search = () => {
 
       const unsubscribe = firestore()
         .collection('followRequests')
+        // eslint-disable-next-line @typescript-eslint/no-shadow
         .onSnapshot(snapshot => {
           const outgoingStatus: Record<string, string> = {};
           const incomingStatus: Record<string, string> = {};
@@ -184,7 +205,9 @@ const Search = () => {
 
       return unsubscribe;
     } catch (error) {
-      console.log(error);
+      if (error instanceof Error) {
+        Alert.alert('Error', 'Something went wrong');
+      }
     }
   };
 
@@ -207,10 +230,12 @@ const Search = () => {
         clearTimeout(debounceRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
-  const unfollowUser = async (targetUserId: string) => {
+  const unfollowUser = async (targetUserId: string, firstName: string) => {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-shadow
       const currentUserId = auth().currentUser?.uid;
       if (!currentUserId) return;
 
@@ -235,8 +260,11 @@ const Search = () => {
       batch.delete(requestRef);
 
       await batch.commit();
+      handleUnFollowUser(firstName);
     } catch (error) {
-      console.log('Error during unfollow process:', error);
+      if (error instanceof Error) {
+        Alert.alert('Error', 'Something went wrong');
+      }
     }
   };
 
@@ -260,6 +288,68 @@ const Search = () => {
       });
 
       handleSuccess(firstName);
+
+      const receiverDoc = await firestore()
+        .collection('users')
+        .doc(receiverId)
+        .get();
+      const currentUserDoc = await firestore()
+        .collection('users')
+        .doc(currentUserId)
+        .get();
+
+      const currentUserName = currentUserDoc.data();
+
+      if (!receiverDoc.exists) {
+        console.log('Receiver user not found in database');
+        return;
+      }
+
+      const receiverData = receiverDoc.data();
+
+      const token = receiverData?.fcmToken;
+
+      if (token) {
+        await axios.post(
+          'https://fcm.googleapis.com/v1/projects/appinstragram-531c1/messages:send',
+          {
+            message: {
+              notification: {
+                title: 'New Follow Request',
+                body: `${currentUserName?.firstName} sent you a follow request.`,
+              },
+              data: {
+                screen: 'Notification',
+                article_id: '12345',
+                notification_receiver_id: receiverId,
+              },
+              token: token,
+              android: {
+                priority: 'high',
+              },
+              apns: {
+                headers: {
+                  'apns-priority': '10',
+                  'apns-push-type': 'alert',
+                  'apns-topic': 'de.myapp.app',
+                },
+                payload: {
+                  aps: {
+                    'content-available': 1,
+                  },
+                },
+              },
+            },
+          },
+          {
+            headers: {
+              Authorization: access_token.access_token,
+            },
+          },
+        );
+      } else {
+        console.log('Receiver does not have an FCM token saved');
+      }
     } catch (error) {
       console.log(error);
 
@@ -268,9 +358,12 @@ const Search = () => {
           user.id === receiverId ? { ...user, followStatus: 'none' } : user,
         ),
       );
+      if (error instanceof Error) {
+        Alert.alert('Error', 'Something went wrong');
+      }
     }
   };
-
+  const styles = inlineStyle(currentTheme);
   const cancelFollowRequest = async (receiverId: string) => {
     try {
       if (!currentUserId) return;
@@ -295,6 +388,7 @@ const Search = () => {
         });
         await batch.commit();
       }
+      handleCancelReq();
     } catch (error) {
       console.log('Error', error);
 
@@ -303,12 +397,16 @@ const Search = () => {
           user.id === receiverId ? { ...user, followStatus: 'pending' } : user,
         ),
       );
+      if (error instanceof Error) {
+        Alert.alert('Error', 'Something went wrong');
+      }
     }
   };
 
   useEffect(() => {
     getUsers();
-  }, [search]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const renderItem = ({ item }: { item: UserType }) => {
     const status = item.followStatus || 'none';
@@ -323,14 +421,14 @@ const Search = () => {
             if (status === 'pending') {
               cancelFollowRequest(item.id);
             } else if (status === 'accepted') {
-              unfollowUser(item.id);
+              unfollowUser(item.id, item.firstName);
             } else {
               sendFollowRequest(item.id, item.firstName);
             }
           }}
           textStyle={status === 'accepted' && styles.followingText}
           btnStyle={status === 'accepted' && styles.followingButton}
-          ButtonName={
+          buttonName={
             status === 'accepted'
               ? 'Followed'
               : status === 'pending'
@@ -345,132 +443,129 @@ const Search = () => {
     );
   };
 
+  // eslint-disable-next-line react/no-unstable-nested-components
   const ListEmptyComponentData = () => {
     if (loading) {
       return <ActivityIndicator size={'small'} />;
     }
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>{strings.no_users_found}</Text>
+        <Text style={styles.emptyText}>{t('no_users_found')}</Text>
       </View>
     );
   };
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: currentTheme.background }]}
+    <SafeAreaView
+      edges={['top', 'left', 'right']}
+      style={styles.safeAreaViewStyle}
     >
-      <CustomInput
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Search users..."
-        variant="primary"
-        placeholderTextColor={currentTheme.text}
-        style={[
-          styles.searchInput,
-          {
-            backgroundColor:
-              themeMode === 'dark' ? currentTheme.background : undefined,
-          },
-        ]}
-      />
+      <CustomHeader route="Search" />
+      <View style={styles.container}>
+        <CustomInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder={t('search_user')}
+          variant="primary"
+          placeholderTextColor={currentTheme.text}
+          style={styles.searchInput}
+        />
 
-      {search.length === 0 ? (
-        <>
-          <View
-            style={[
-              styles.suggestedAccountView,
-              { backgroundColor: currentTheme.background },
-            ]}
-          >
-            <Text
-              style={[
-                styles.suggestedAccountText,
-                { color: currentTheme.text },
-              ]}
-            >
-              {strings.suggested_account}
-            </Text>
+        {search.length === 0 ? (
+          <>
+            <View style={styles.suggestedAccountView}>
+              <Text style={styles.suggestedAccountText}>
+                {t('suggested_account')}
+              </Text>
 
-            <FlatList
-              data={users}
-              keyExtractor={item => item.id}
-              renderItem={renderItem}
-              style={styles.flatList}
-              showsVerticalScrollIndicator={false}
-              ListEmptyComponent={ListEmptyComponentData}
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-              }
-            />
-          </View>
-        </>
-      ) : (
-        <>
-          {searchLoading ? (
-            <>
-              <ActivityIndicator size={'large'} color={'blue'} />
-            </>
-          ) : (
-            <>
               <FlatList
-                data={searchUser}
+                data={users}
                 keyExtractor={item => item.id}
                 renderItem={renderItem}
-                keyboardShouldPersistTaps="handled"
+                style={styles.flatList}
                 showsVerticalScrollIndicator={false}
-                style={styles.mH25}
+                ListEmptyComponent={ListEmptyComponentData}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                  />
+                }
               />
-            </>
-          )}
-        </>
-      )}
-    </View>
+            </View>
+          </>
+        ) : (
+          <>
+            {searchLoading ? (
+              <>
+                <ActivityIndicator size={'large'} color={'blue'} />
+              </>
+            ) : (
+              <>
+                <FlatList
+                  data={searchUser}
+                  keyExtractor={item => item.id}
+                  renderItem={renderItem}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                  style={styles.mH25}
+                />
+              </>
+            )}
+          </>
+        )}
+      </View>
+    </SafeAreaView>
   );
 };
 
 export default Search;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+const inlineStyle = (currentTheme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: currentTheme.background,
+    },
+    safeAreaViewStyle: { backgroundColor: currentTheme.background, flex: 1 },
 
-  searchInput: {
-    borderRadius: rw(12),
-    marginBottom: rh(5),
-    fontSize: 15,
-    marginTop: rh(15),
-  },
+    searchInput: {
+      borderRadius: rw(12),
+      marginBottom: rh(5),
+      fontSize: 15,
+      marginTop: rh(15),
+      backgroundColor: currentTheme.background,
+    },
 
-  followingButton: {
-    backgroundColor: colors.mediumDarkGray,
-  },
-  followingText: {
-    color: colors.black,
-  },
+    followingButton: {
+      backgroundColor: colors.mediumDarkGray,
+    },
+    followingText: {
+      color: colors.black,
+    },
 
-  emptyContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: rh(250),
-  },
+    emptyContainer: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: rh(250),
+    },
 
-  emptyText: {
-    color: colors.gray,
-    fontSize: rf(16),
-  },
-  suggestedAccountView: {
-    backgroundColor: colors.white,
-    marginHorizontal: rw(10),
-    borderRadius: rw(10),
-  },
-  suggestedAccountText: {
-    fontSize: rf(17),
-    fontWeight: 'bold',
-    paddingHorizontal: rw(15),
-    marginVertical: rh(10),
-  },
-  flatList: { marginHorizontal: rw(10) },
-  mH25: { marginHorizontal: rw(25) },
-});
+    emptyText: {
+      color: colors.gray,
+      fontSize: rf(16),
+    },
+    suggestedAccountView: {
+      marginHorizontal: rw(10),
+      borderRadius: rw(10),
+      backgroundColor: currentTheme.background,
+    },
+    suggestedAccountText: {
+      fontSize: rf(17),
+      fontWeight: 'bold',
+      paddingHorizontal: rw(15),
+      marginVertical: rh(10),
+      color: currentTheme.text,
+    },
+    flatList: { marginHorizontal: rw(10) },
+    mH25: { marginHorizontal: rw(25) },
+  });

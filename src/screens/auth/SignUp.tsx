@@ -12,7 +12,7 @@ import {
 import moment from 'moment';
 import firestore from '@react-native-firebase/firestore';
 import ImagePicker from 'react-native-image-crop-picker';
-import { images } from '../../utils/images';
+import { defaultImages, images } from '../../utils/images';
 import CustomInput from '../../components/common/CustomInput';
 import { colors } from '../../utils/color';
 import CustomButton from '../../components/common/CustomButton';
@@ -24,11 +24,16 @@ import { StackRootScreen } from '../../types/navigationtype';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DatePicker from 'react-native-date-picker';
 import { onGoogleButtonPress } from '../../functions/auth/auth';
-// import { auth } from '../../utils/firebaseConfig';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import RadioButton from '../../components/common/CustomRadioButton';
 import auth from '@react-native-firebase/auth';
 import { auths } from '../../utils/firebaseConfig';
+import messaging from '@react-native-firebase/messaging';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../context/Theme';
+import { Theme } from '../../types/screens';
+import Toast from 'react-native-toast-message';
+
 interface Error {
   firstName?: string;
   lastName?: string;
@@ -50,21 +55,23 @@ const SignUp = () => {
   const [open, setOpen] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [gender, setGender] = useState<string | undefined>('Male');
+  const { t } = useTranslation();
+  const [gender, setGender] = useState<string | undefined>(t('male'));
   const [phoneNo, setPhoneNo] = useState<string>('');
   const [dob, setDob] = useState('');
   const [errors, setErrors] = useState<Error>({});
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const navigation = useNavigation<StackNavigationProp<StackRootScreen>>();
   const route = useRoute();
-  const params = route.params as { email: string; name: string };
+  const params = route.params as { email: string; firstName: string };
 
   useEffect(() => {
     if (params) {
       setEmail(params?.email);
-      setFirstName(params?.name);
+      setFirstName(params?.firstName);
     }
   }, [params]);
+
   const selectImage = () => {
     ImagePicker.openPicker({
       width: 300,
@@ -78,18 +85,12 @@ const SignUp = () => {
         console.log('User cancelled or error:', err);
       });
   };
-  const defaultImages = [
-    'https://randomuser.me/api/portraits/men/1.jpg',
-    'https://randomuser.me/api/portraits/women/2.jpg',
-    'https://randomuser.me/api/portraits/men/3.jpg',
-    'https://randomuser.me/api/portraits/women/4.jpg',
-    'https://randomuser.me/api/portraits/men/5.jpg',
-    'https://randomuser.me/api/portraits/women/6.jpg',
-    'https://randomuser.me/api/portraits/men/7.jpg',
-    'https://randomuser.me/api/portraits/women/8.jpg',
-    'https://randomuser.me/api/portraits/men/9.jpg',
-    'https://randomuser.me/api/portraits/women/10.jpg',
-  ];
+  const handleSuccess = () => {
+    Toast.show({
+      type: 'success',
+      text1: t('sigUp_successfully'),
+    });
+  };
 
   const getRandomImage = () => {
     const randomIndex = Math.floor(Math.random() * defaultImages.length);
@@ -97,40 +98,40 @@ const SignUp = () => {
     return defaultImages[randomIndex];
   };
 
-  const radioButtons = ['Male', 'Female', 'Other'];
+  const radioButtons = [t('male'), t('female'), t('other')];
 
   const validate = () => {
     const newErrors: Error = {};
 
-    if (!firstName.trim()) newErrors.firstName = 'First name is required';
-    if (!lastName.trim()) newErrors.lastName = 'Last name is required';
+    if (!firstName.trim()) newErrors.firstName = t('firstName_validation');
+    if (!lastName.trim()) newErrors.lastName = t('lastName_validation');
 
     if (!phoneNo.trim()) {
-      newErrors.phoneNo = 'Phone number is required';
+      newErrors.phoneNo = t('phoneNumber_validation');
     } else if (!/^\d{10,}$/.test(phoneNo.replace(/[-+() ]/g, ''))) {
-      newErrors.phoneNo = 'Invalid phone number format';
+      newErrors.phoneNo = t('invalid_phoneNumber_validation');
     }
 
-    if (!gender) newErrors.gender = 'Gender selection is required';
+    if (!gender) newErrors.gender = t('gender_validation');
 
-    if (!dob) newErrors.dob = 'Date of birth is required';
+    if (!dob) newErrors.dob = t('DOB_validation');
 
     if (!email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = t('email_validation');
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Invalid email format';
+      newErrors.email = t('invalid_email');
     }
 
     if (!password.trim()) {
-      newErrors.password = 'Password is required';
+      newErrors.password = t('password_validation');
     } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = t('invalid_password');
     }
 
     if (!confirmPassword.trim()) {
-      newErrors.confirmPassword = 'Confirm password is required';
+      newErrors.confirmPassword = t('confirm_pass_validation');
     } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = t('not_match_pass');
     }
 
     const today = new Date();
@@ -141,7 +142,7 @@ const SignUp = () => {
     );
 
     if (date > tenYearsAgo) {
-      newErrors.dob = 'You must be at least 10 years old.';
+      newErrors.dob = t('date_validation');
     }
 
     setErrors(newErrors);
@@ -159,8 +160,9 @@ const SignUp = () => {
 
       if (isGoogleUser) {
         const currentUser = auth().currentUser;
+
         if (!currentUser) throw new Error('No authenticated user found.');
-        uid = currentUser.uid;
+        uid = currentUser?.uid;
       } else {
         const userCredential = await createUserWithEmailAndPassword(
           auths,
@@ -170,22 +172,30 @@ const SignUp = () => {
         uid = userCredential.user.uid;
       }
 
-      await firestore().collection('users').doc(uid).set({
-        profileImage: randomProfileImage,
-        firstName: firstName.toLowerCase(),
-        lastName: lastName.toLowerCase(),
-        gender,
-        phoneNo,
-        dob,
-        email,
-        followers: [],
-        following: [],
-        createdAt: firestore.FieldValue.serverTimestamp(),
-      });
+      const token = await messaging().getToken();
+
+      await firestore().collection('users').doc(uid).set(
+        {
+          userId: uid,
+          profileImage: randomProfileImage,
+          firstName: firstName.toLowerCase(),
+          lastName: lastName.toLowerCase(),
+          gender,
+          phoneNo,
+          dob,
+          email,
+          followers: [],
+          following: [],
+          fcmToken: token,
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+
       if (isGoogleUser) {
         await auth().signOut();
       }
-
+      handleSuccess();
       navigation.replace('Login');
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -193,6 +203,7 @@ const SignUp = () => {
       }
     }
   };
+
   const signIn = () => {
     navigation.navigate('Login');
   };
@@ -239,16 +250,13 @@ const SignUp = () => {
     setGender(selectedGender);
     if (errors.gender) setErrors(prev => ({ ...prev, gender: '' }));
   };
+  const { currentTheme } = useTheme();
+  const styles = inlineStyle(currentTheme);
   return (
     <KeyboardAvoidingView style={styles.container}>
       <SafeAreaView>
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={styles.textContainer}>
-            {/* <Image
-              source={images.instagramLogo}
-              style={styles.headerImage}
-              resizeMode="contain"
-            /> */}
             <Text style={styles.headerImage}>{strings.instagram}</Text>
           </View>
           <View style={styles.profileView}>
@@ -264,21 +272,23 @@ const SignUp = () => {
             </TouchableOpacity>
           </View>
           <CustomInput
-            placeholder={strings.firstName}
+            placeholder={t('firstName')}
             value={firstName}
             onChangeText={onChangeFirstName}
             placeholderTextColor={colors.lightGray}
             error={errors.firstName}
+            style={styles.inputStyle}
           />
           <CustomInput
-            placeholder={strings.lastName}
+            placeholder={t('lastName')}
             value={lastName}
             onChangeText={onChangeLastName}
             placeholderTextColor={colors.lightGray}
             error={errors.lastName}
+            style={styles.inputStyle}
           />
           <View style={styles.radioView}>
-            <Text style={styles.radioText}>{strings.gender}</Text>
+            <Text style={styles.radioText}>{t('gender')}</Text>
 
             <View style={styles.radioButtonInnerView}>
               {radioButtons.map(option => (
@@ -287,24 +297,28 @@ const SignUp = () => {
                   label={option}
                   selected={gender === option}
                   onSelect={() => onSelectGender(option)}
+                  error={errors.gender}
+                  style={styles.radioButton}
                 />
               ))}
             </View>
           </View>
 
           <CustomInput
-            placeholder={strings.phoneNo}
+            placeholder={t('phoneNo')}
             placeholderTextColor={colors.lightGray}
             value={phoneNo}
             onChangeText={onChangePhoneNo}
             error={errors.phoneNo}
+            style={styles.inputStyle}
           />
           <CustomInput
-            placeholder={strings.dob}
+            placeholder={t('dob')}
             placeholderTextColor={colors.lightGray}
             value={moment(date).format('YYYY-MM-DD')}
             onPressIn={() => setOpen(true)}
             error={errors.dob}
+            style={styles.inputStyle}
           />
           <DatePicker
             modal
@@ -318,15 +332,16 @@ const SignUp = () => {
             maximumDate={new Date()}
           />
           <CustomInput
-            placeholder={strings.email}
+            placeholder={t('email')}
             placeholderTextColor={colors.lightGray}
             value={email}
             onChangeText={onChangeEmail}
             error={errors.email}
+            style={styles.inputStyle}
           />
 
           <CustomInput
-            placeholder={strings.password}
+            placeholder={t('password')}
             value={password}
             onChangeText={onChangePassword}
             placeholderTextColor={colors.lightGray}
@@ -335,10 +350,11 @@ const SignUp = () => {
             imageStyle={styles.eye}
             rightImage={isPasswordSecure ? images.hidePass : images.eye}
             onPressImage={() => setIsPasswordSecure(!isPasswordSecure)}
+            style={styles.inputStyle}
           />
           <CustomInput
             placeholderTextColor={colors.lightGray}
-            placeholder={strings.confirmPassword}
+            placeholder={t('confirmPassword')}
             value={confirmPassword}
             onChangeText={onChangeConfirmPassword}
             error={errors.confirmPassword}
@@ -348,24 +364,25 @@ const SignUp = () => {
             onPressImage={() =>
               setConfirmPasswordSecure(!isConfirmPasswordSecure)
             }
+            style={styles.inputStyle}
           />
 
-          <CustomButton label={strings.signUp} onPress={handleSignUp} />
+          <CustomButton label={t('signUp')} onPress={handleSignUp} />
           <Text style={styles.accountText}>
-            {strings.haveAccount}
+            {t('haveAccount')}
             <Text style={styles.color} onPress={signIn}>
               {' '}
-              {strings.signHere}
+              {t('signHere')}
             </Text>
           </Text>
 
           <View style={styles.subContainer}>
             <View style={styles.line} />
-            <Text style={styles.text}>{strings.or}</Text>
+            <Text style={styles.text}>{t('or')}</Text>
             <View style={styles.line} />
           </View>
           <CustomButton
-            label={strings.googleSignup}
+            label={t('googleSignup')}
             onPress={() => onGoogleButtonPress(navigation)}
             leftImage={images.google}
             imageStyle={styles.imageStyle}
@@ -378,89 +395,94 @@ const SignUp = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.white,
-  },
-  headerImage: {
-    fontSize: rf(40),
-    fontFamily: 'GrandHotel-Regular',
-    alignSelf: 'center',
-    marginBottom: rh(24),
-  },
+const inlineStyle = (currentTheme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: currentTheme.background,
+    },
+    headerImage: {
+      fontSize: rf(40),
+      fontFamily: 'GrandHotel-Regular',
+      textAlign: 'center',
+      marginBottom: rh(24),
+      color: currentTheme.text,
+    },
 
-  accountText: {
-    fontSize: rf(16),
-    textAlign: 'center',
-    marginTop: rh(12),
-    marginBottom: rh(30),
-  },
-  color: { color: colors.blue },
-  textContainer: {
-    justifyContent: 'center',
-  },
-  eye: {
-    width: rw(18),
-    height: rw(18),
-  },
-  imagePickerField: {
-    height: rw(120),
-    width: rw(120),
-    backgroundColor: colors.offWhite,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.blueGray,
-    marginVertical: rh(10),
-    borderRadius: rw(100),
-  },
-  preview: {
-    height: rw(120),
-    width: rw(120),
-    borderRadius: rw(100),
-  },
+    accountText: {
+      fontSize: rf(16),
+      textAlign: 'center',
+      marginTop: rh(12),
+      marginBottom: rh(30),
+      color: currentTheme.text,
+    },
+    color: { color: colors.blue },
+    textContainer: {
+      justifyContent: 'center',
+    },
+    eye: {
+      width: rw(18),
+      height: rw(18),
+    },
+    imagePickerField: {
+      height: rw(120),
+      width: rw(120),
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.blueGray,
+      marginVertical: rh(10),
+      borderRadius: rw(100),
+      backgroundColor: currentTheme.googleButton,
+    },
+    preview: {
+      height: rw(120),
+      width: rw(120),
+      borderRadius: rw(100),
+    },
+    inputStyle: { backgroundColor: currentTheme.background },
+    subContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: rw(28),
+    },
+    line: {
+      flex: 1,
+      height: rh(2),
+      backgroundColor: colors.mediumDarkGray,
+    },
+    text: {
+      textAlign: 'center',
+      marginHorizontal: rw(20),
+      color: colors.gray,
+    },
 
-  subContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: rw(28),
-  },
-  line: {
-    flex: 1,
-    height: rh(2),
-    backgroundColor: colors.mediumDarkGray,
-  },
-  text: {
-    textAlign: 'center',
-    marginHorizontal: rw(20),
-    color: colors.gray,
-  },
-
-  imageStyle: { width: rw(20), height: rh(20) },
-  customButtonStyle: {
-    backgroundColor: colors.yellow_white,
-    marginBottom: rh(30),
-  },
-  colorBlue: { color: colors.blue },
-  profileView: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: rh(20),
-  },
-  radioText: {
-    fontSize: rf(16),
-    fontWeight: 600,
-    marginBottom: rh(7),
-  },
-  radioView: {
-    marginHorizontal: rw(28),
-    marginBottom: rh(12),
-  },
-  radioButtonInnerView: {
-    flexDirection: 'row',
-    gap: rw(20),
-  },
-});
+    imageStyle: { width: rw(20), height: rh(20) },
+    customButtonStyle: {
+      marginBottom: rh(30),
+      backgroundColor: currentTheme.googleButton,
+    },
+    colorBlue: { color: colors.blue },
+    profileView: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: rh(20),
+    },
+    radioText: {
+      fontSize: rf(16),
+      fontWeight: 600,
+      marginBottom: rh(7),
+      color: currentTheme.text,
+    },
+    radioButton: { color: currentTheme.text },
+    radioView: {
+      marginHorizontal: rw(28),
+      marginBottom: rh(12),
+    },
+    radioButtonInnerView: {
+      flexDirection: 'row',
+      gap: rw(20),
+    },
+  });
 
 export default SignUp;

@@ -1,21 +1,33 @@
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, {
+  createContext,
+  useState,
+  useContext,
+  useEffect,
+  ReactNode,
+} from 'react';
+import { useColorScheme } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { colors } from '../utils/color';
 
 export interface ThemeProperties {
   background: string;
   text: string;
   card: string;
+  googleButton: string;
 }
 
 const themes: Record<'light' | 'dark', ThemeProperties> = {
   light: {
-    background: '#F4F4F4',
-    text: '#000000',
-    card: '#F2F2F2',
+    background: colors.lightBackground,
+    text: colors.black,
+    card: colors.lightCard,
+    googleButton: colors.offWhite,
   },
   dark: {
-    background: '#222222',
-    text: '#FFFFFF',
-    card: '#121212',
+    background: colors.darkBackground,
+    text: colors.white,
+    card: colors.darkCard,
+    googleButton: colors.darkButton,
   },
 };
 
@@ -31,11 +43,37 @@ interface ThemeProviderProps {
   children: ReactNode;
 }
 
+const THEME_STORAGE_KEY = 'user_theme_preference';
+
 export const ThemeProvider = ({ children }: ThemeProviderProps) => {
+  const systemTheme = useColorScheme();
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
 
-  const toggleTheme = () => {
-    setThemeMode(prevMode => (prevMode === 'light' ? 'dark' : 'light'));
+  useEffect(() => {
+    const loadSavedTheme = async () => {
+      try {
+        const savedMode = await AsyncStorage.getItem(THEME_STORAGE_KEY);
+        if (savedMode === 'light' || savedMode === 'dark') {
+          setThemeMode(savedMode);
+        } else {
+          setThemeMode(systemTheme === 'dark' ? 'dark' : 'light');
+        }
+      } catch (error) {
+        console.error('Failed ', error);
+      }
+    };
+
+    loadSavedTheme();
+  }, [systemTheme]);
+
+  const toggleTheme = async () => {
+    try {
+      const nextMode = themeMode === 'light' ? 'dark' : 'light';
+      setThemeMode(nextMode);
+      await AsyncStorage.setItem(THEME_STORAGE_KEY, nextMode);
+    } catch (error) {
+      console.error('Failed to save theme:', error);
+    }
   };
 
   const currentTheme = themes[themeMode];

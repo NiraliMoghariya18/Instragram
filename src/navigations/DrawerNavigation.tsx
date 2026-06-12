@@ -2,23 +2,17 @@ import React from 'react';
 import {
   createDrawerNavigator,
   DrawerContentComponentProps,
-  DrawerHeaderProps,
 } from '@react-navigation/drawer';
 import BottomTabNavigation from './BottomTabNavigation';
 import { CustomDrawerContent } from './CustomDrawer';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { rw } from '../utils/responsive';
-import CustomHeader from './CustomHeader';
 
 const Drawer = createDrawerNavigator();
 
 const DrawerNavigation = () => {
   const drawer = (props: DrawerContentComponentProps) => {
     return <CustomDrawerContent {...props} />;
-  };
-
-  const header = (props: DrawerHeaderProps) => {
-    return <CustomHeader {...props} />;
   };
 
   return (
@@ -28,7 +22,7 @@ const DrawerNavigation = () => {
         drawerStyle: {
           width: rw(320),
         },
-        header: header,
+        headerShown: false,
       }}
     >
       <Drawer.Screen
