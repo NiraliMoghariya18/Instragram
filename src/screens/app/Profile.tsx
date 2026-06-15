@@ -102,7 +102,7 @@ const Profile = () => {
       edges={['top', 'left', 'right']}
       style={styles.safeAreaViewStyle}
     >
-      <CustomHeader route="Profile" />
+      <CustomHeader route={t('profile')} />
       <ScrollView
         style={styles.container}
         refreshControl={

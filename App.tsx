@@ -53,7 +53,6 @@ const App = () => {
 
     const unsubscribe = messaging().onMessage(
       async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
-        console.log('remoteMessage :>> ', remoteMessage);
         try {
           const channelId = await notifee.createChannel({
             id: 'default',

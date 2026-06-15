@@ -7,6 +7,7 @@ import {
   Image,
   Alert,
   ScrollView,
+  I18nManager,
 } from 'react-native';
 import CustomInput from '../../components/common/CustomInput';
 import { useRoute } from '@react-navigation/native';
@@ -54,10 +55,10 @@ const EditProfile = () => {
   const [open, setOpen] = useState(false);
   const [phoneNo, setPhoneNo] = useState<string>(editItem?.phoneNo || '');
   const [email, setEmail] = useState(editItem?.email || '');
-
+  const isRTL = I18nManager.isRTL;
   const radioButtons = [
-    { key: 'Female', value: t('female') },
     { key: 'Male', value: t('male') },
+    { key: 'Female', value: t('female') },
     { key: 'Other', value: t('other') },
   ];
   const [dob, setDob] = useState('');
@@ -196,7 +197,7 @@ const EditProfile = () => {
       }
     }
   };
-  const styles = inlineStyle(currentTheme);
+  const styles = inlineStyle(currentTheme, isRTL);
   return (
     <SafeAreaView edges={['top']} style={styles.container}>
       <View style={styles.headerContainer}>
@@ -307,7 +308,7 @@ const EditProfile = () => {
   );
 };
 
-const inlineStyle = (currentTheme: Theme) =>
+const inlineStyle = (currentTheme: Theme, isRTL: boolean) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -368,6 +369,7 @@ const inlineStyle = (currentTheme: Theme) =>
       width: rw(20),
       height: rh(20),
       tintColor: currentTheme.text,
+      transform: isRTL ? [{ rotate: '180deg' }] : undefined,
     },
     input: {
       color: currentTheme.text,

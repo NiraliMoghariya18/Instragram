@@ -29,6 +29,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/Theme';
 import { Theme } from '../../types/screens';
 import Toast from 'react-native-toast-message';
+import RNRestart from 'react-native-restart';
 
 interface FormError {
   email?: string;
@@ -72,6 +73,7 @@ const Login = () => {
       I18nManager.allowRTL(isRTL);
       I18nManager.forceRTL(isRTL);
       NativeModules.DevSettings.reload();
+      RNRestart.Restart();
     }
   };
 
@@ -163,6 +165,10 @@ const Login = () => {
       await firestore().collection('users').doc(uid).update({
         fcmToken: token,
       });
+      // await firestore()
+      //   .collection('users')
+      //   .doc(uid)
+      //   .set({ fcmToken: token }, { merge: true });
       handleSuccess();
       navigation.replace('DrawerNavigation');
     } catch (error) {

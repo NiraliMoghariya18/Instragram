@@ -408,6 +408,16 @@ const Search = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const customCardPress = (id: string, firstName: string, status: string) => {
+    if (status === 'pending') {
+      cancelFollowRequest(id);
+    } else if (status === 'accepted') {
+      unfollowUser(id, firstName);
+    } else {
+      sendFollowRequest(id, firstName);
+    }
+  };
+
   const renderItem = ({ item }: { item: UserType }) => {
     const status = item.followStatus || 'none';
 
@@ -417,25 +427,17 @@ const Search = () => {
           firstName={item.firstName}
           lastName={item.lastName}
           image={item.profileImage}
-          onPress={() => {
-            if (status === 'pending') {
-              cancelFollowRequest(item.id);
-            } else if (status === 'accepted') {
-              unfollowUser(item.id, item.firstName);
-            } else {
-              sendFollowRequest(item.id, item.firstName);
-            }
-          }}
+          onPress={() => customCardPress(item.id, item.firstName, status)}
           textStyle={status === 'accepted' && styles.followingText}
           btnStyle={status === 'accepted' && styles.followingButton}
           buttonName={
             status === 'accepted'
-              ? 'Followed'
+              ? t('followed')
               : status === 'pending'
-              ? 'Cancel Requested'
+              ? t('cancel_req')
               : status === 'follow_back'
-              ? 'Follow Back'
-              : 'Follow'
+              ? t('follow_back')
+              : t('follow')
           }
           disable={status === 'accepted' && true}
         />
@@ -460,7 +462,7 @@ const Search = () => {
       edges={['top', 'left', 'right']}
       style={styles.safeAreaViewStyle}
     >
-      <CustomHeader route="Search" />
+      <CustomHeader route={t('search')} />
       <View style={styles.container}>
         <CustomInput
           value={search}

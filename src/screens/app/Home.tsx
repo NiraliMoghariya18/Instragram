@@ -13,7 +13,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
-  useWindowDimensions,
   ActivityIndicator,
   Platform,
   I18nManager,
@@ -23,10 +22,6 @@ import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import { images } from '../../utils/images';
 import { rf, rh, rw } from '../../utils/responsive';
-import Carousel, {
-  ICarouselInstance,
-  Pagination,
-} from 'react-native-reanimated-carousel';
 
 import BottomSheet, {
   BottomSheetBackdrop,
@@ -34,14 +29,13 @@ import BottomSheet, {
   BottomSheetTextInput,
 } from '@gorhom/bottom-sheet';
 
-import { useSharedValue } from 'react-native-reanimated';
-
 import { colors } from '../../utils/color';
 import { useTheme } from '../../context/Theme';
 import { Comments, Post, Theme } from '../../types/screens';
 import { useTranslation } from 'react-i18next';
 import CustomHeader from '../../navigations/CustomHeader';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { PostCard } from '../../components/common/CustomPost';
 
 const Home = () => {
   const { t } = useTranslation();
@@ -52,12 +46,8 @@ const Home = () => {
   const [commentText, setCommentText] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['50%', '85%'], []);
-  const { width: screenWidth } = useWindowDimensions();
+  const snapPoints = useMemo(() => ['50%', '80%'], []);
   const [loading, setLoading] = useState(true);
-  const ref = useRef<ICarouselInstance>(null);
-  const progress = useSharedValue<number>(0);
-  const [like, setLike] = useState(false);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -197,118 +187,26 @@ const Home = () => {
     loadComments(selectedPost?.id || '');
   };
 
-  const onPressPagination = (index: number) => {
-    ref.current?.scrollTo({
-      count: index - progress.value,
-      animated: true,
-    });
+  const productDetailStrings = {
+    lessText: 'Show less',
+    seeText: 'See more...',
   };
+
   const isRTL = I18nManager.isRTL;
   const styles = inlineStyle(currentTheme, isRTL);
   const renderPost = ({ item }: { item: Post }) => {
-    // eslint-disable-next-line no-array-constructor
-    const data = [...new Array(...item.imageUrl).values()];
     const currentUser = auth().currentUser?.uid as string;
+
     return (
-      <View style={styles.card}>
-        <View style={styles.leftContainer}>
-          <Image
-            source={{
-              uri: item.user?.profileImage,
-            }}
-            style={styles.profile}
-            resizeMode="contain"
-          />
-          <View style={styles.flex}>
-            <Text style={styles.name}>
-              {item.user?.firstName} {item.user?.lastName}
-            </Text>
-            <Text style={styles.description}>{item.title}</Text>
-          </View>
-        </View>
-        <Carousel
-          ref={ref}
-          loop={false}
-          width={screenWidth}
-          height={screenWidth * 0.6}
-          autoPlay={false}
-          data={data}
-          onProgressChange={progress}
-          scrollAnimationDuration={1000}
-          // eslint-disable-next-line @typescript-eslint/no-shadow
-          renderItem={({ item }) => {
-            return (
-              <Image
-                source={{ uri: item as string }}
-                style={[styles.imageCarousel, { width: screenWidth }]}
-                resizeMode="cover"
-              />
-            );
-          }}
-        />
-
-        <View style={styles.actions}>
-          <View style={styles.heartView}>
-            <TouchableOpacity
-              onPress={() => {
-                toggleLike(item);
-                setLike(!like);
-              }}
-            >
-              {item.likes?.includes(currentUser) ? (
-                <Image
-                  source={images.redHeart}
-                  style={styles.heartImage}
-                  resizeMode="contain"
-                />
-              ) : (
-                <Image
-                  source={
-                    themeMode === 'light' ? images.heart : images.whiteHeart
-                  }
-                  style={styles.heartImage}
-                  resizeMode="contain"
-                />
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => openComments(item)}>
-              <Image
-                source={
-                  themeMode === 'light' ? images.comments : images.whiteComments
-                }
-                style={styles.commentImage}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-          </View>
-          <Pagination.Basic
-            progress={progress}
-            data={data}
-            dotStyle={styles.dot}
-            activeDotStyle={styles.activeDot}
-            containerStyle={styles.paginationContainer}
-            horizontal
-            onPress={onPressPagination}
-          />
-          <View style={styles.mr60} />
-        </View>
-        {item.likes?.length > 0 && (
-          <Text style={styles.likeText}>
-            {t('liked_by')} {item.lastLikedUser?.firstName}{' '}
-            {item.lastLikedUser?.lastName}
-            {item.likes.length > 1
-              ? ` and ${item.likes.length - 1} others`
-              : ''}
-          </Text>
-        )}
-        <Text style={[styles.description, styles.descriptionStyle]}>
-          <Text style={styles.name}>
-            {item.user?.firstName} {item.user?.lastName}{' '}
-          </Text>
-          {item.description}
-        </Text>
-      </View>
+      <PostCard
+        item={item}
+        currentUser={currentUser}
+        themeMode={themeMode}
+        t={t}
+        productDetailStrings={productDetailStrings}
+        toggleLike={() => toggleLike(item)}
+        openComments={() => openComments(item)}
+      />
     );
   };
 
@@ -333,7 +231,7 @@ const Home = () => {
       edges={['top', 'left', 'right', 'bottom']}
       style={styles.safeAreaViewStyle}
     >
-      <CustomHeader route="Instagram" />
+      <CustomHeader route={t('instagram')} />
       <View style={styles.flex}>
         <FlatList
           data={posts}
@@ -347,7 +245,7 @@ const Home = () => {
         />
         <BottomSheet
           ref={bottomSheetRef}
-          index={0}
+          index={-1}
           enablePanDownToClose={true}
           snapPoints={snapPoints}
           keyboardBehavior="extend"
@@ -457,7 +355,10 @@ const inlineStyle = (currentTheme: Theme, isRTL: boolean) =>
       marginRight: rw(10),
     },
     flex: { flex: 1, backgroundColor: currentTheme.background },
-
+    toggleText: {
+      color: '#007AFF',
+      fontWeight: 'bold',
+    },
     name: {
       fontWeight: '700',
       fontSize: rf(16),
@@ -496,7 +397,7 @@ const inlineStyle = (currentTheme: Theme, isRTL: boolean) =>
       marginBottom: rh(20),
       color: currentTheme.text,
     },
-    imageCarousel: { height: rh(250) },
+
     heartImage: { width: rw(30), height: rh(30) },
     heartView: {
       flexDirection: 'row',
@@ -527,9 +428,7 @@ const inlineStyle = (currentTheme: Theme, isRTL: boolean) =>
     },
     bottomSheetStyle: { backgroundColor: currentTheme.background },
     input: {
-      // backgroundColor: currentTheme.background,
       flex: 1,
-      // height: rh(50),
       textAlign: isRTL ? 'right' : 'left',
       color: currentTheme.text,
     },
@@ -540,7 +439,7 @@ const inlineStyle = (currentTheme: Theme, isRTL: boolean) =>
       borderBottomColor: colors.blueGray,
       borderBottomWidth: 2,
       marginHorizontal: rw(20),
-      paddingBottom: 10,
+
       backgroundColor: currentTheme.background,
     },
     buttonView: { alignSelf: 'center', paddingLeft: 10 },

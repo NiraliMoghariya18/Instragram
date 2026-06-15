@@ -29,30 +29,27 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
 
   const styles = inlineStyle(currentTheme);
 
-  const onPressHome = () => {
-    props.navigation.navigate('BottomTabNavigation', {
-      screen: 'Home',
+  const navigateToScreen = (tabName: string, screenName: string) => {
+    props.navigation.navigate(tabName, {
+      screen: screenName,
     });
   };
+
+  const onPressHome = () => {
+    navigateToScreen('BottomTabNavigation', 'Home');
+  };
+
   const onPressSearch = () => {
-    props.navigation.navigate('BottomTabNavigation', {
-      screen: 'Search',
-    });
+    navigateToScreen('BottomTabNavigation', 'Search');
   };
   const onPressAddPost = () => {
-    props.navigation.navigate('BottomTabNavigation', {
-      screen: 'AddPost',
-    });
+    navigateToScreen('BottomTabNavigation', 'AddPost');
   };
   const onPressNotification = () => {
-    props.navigation.navigate('BottomTabNavigation', {
-      screen: 'Notification',
-    });
+    navigateToScreen('BottomTabNavigation', 'Notification');
   };
   const onPressProfile = () => {
-    props.navigation.navigate('BottomTabNavigation', {
-      screen: 'Profile',
-    });
+    navigateToScreen('BottomTabNavigation', 'Profile');
   };
 
   const onSignOut = async () => {
