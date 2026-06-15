@@ -1,66 +1,59 @@
 import React from 'react';
 import { View, StyleSheet, Image, Text, TouchableOpacity } from 'react-native';
-import { rf, rh, rw } from '../utils/responsive';
-import { DrawerHeaderProps } from '@react-navigation/drawer';
+import { rf, rw } from '../utils/responsive';
 import { images } from '../utils/images';
-import { colors } from '../utils/color';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { strings } from '../utils/strings';
-import { useTheme } from '../context/Theme';
 
-const CustomHeader = ({ navigation }: DrawerHeaderProps) => {
+import { useTheme } from '../context/Theme';
+import { DrawerActions, useNavigation } from '@react-navigation/native';
+import { Theme } from '../types/screens';
+const CustomHeader = ({ route }: { route: string }) => {
   const { currentTheme } = useTheme();
+  const navigation = useNavigation();
+  const handleOpenDrawer = () => {
+    navigation.dispatch(DrawerActions.openDrawer());
+  };
+  const styles = inlineStyle(currentTheme, route);
 
   return (
-    <SafeAreaView
-      edges={['top']}
-      style={{ backgroundColor: currentTheme.background }}
-    >
-      <View
-        style={[
-          styles.headerContainer,
-          { backgroundColor: currentTheme.background },
-        ]}
-      >
-        <TouchableOpacity
-          style={styles.left}
-          onPress={() => navigation.openDrawer()}
-        >
-          <>
-            <Image
-              source={images.menu}
-              style={[styles.icon, { tintColor: currentTheme.text }]}
-              resizeMode="contain"
-            />
-          </>
-        </TouchableOpacity>
-        <Text style={[styles.instagramText, { color: currentTheme.text }]}>
-          {strings.instagram}
-        </Text>
-      </View>
-    </SafeAreaView>
+    <View style={styles.headerContainer}>
+      <TouchableOpacity style={styles.left} onPress={handleOpenDrawer}>
+        <>
+          <Image
+            source={images.menu}
+            style={styles.icon}
+            resizeMode="contain"
+          />
+        </>
+      </TouchableOpacity>
+      <Text style={styles.instagramText}>{route}</Text>
+    </View>
   );
 };
 
-const styles = StyleSheet.create({
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  left: {
-    position: 'absolute',
-    left: rw(20),
-  },
-  instagramText: {
-    fontSize: rf(35),
-    fontFamily: 'GrandHotel-Regular',
-  },
-  icon: {
-    width: rw(30),
-    height: rh(30),
-    tintColor: colors.black,
-  },
-});
+const inlineStyle = (currentTheme: Theme, route: string) =>
+  StyleSheet.create({
+    headerContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: currentTheme.background,
+    },
+    left: {
+      position: 'absolute',
+      left: rw(20),
+    },
+    instagramText: {
+      textAlign: 'center',
+      color: currentTheme.text,
+      fontFamily: route === 'Instagram' ? 'GrandHotel-Regular' : undefined,
+      fontSize: route === 'Instagram' ? rf(30) : rf(22),
+    },
+    icon: {
+      width: rw(30),
+      height: rw(30),
+      tintColor: currentTheme.text,
+    },
+    safeAreaViewStyle: { backgroundColor: currentTheme.background },
+  });
 
 export default CustomHeader;

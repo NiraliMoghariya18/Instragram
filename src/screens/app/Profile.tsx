@@ -16,7 +16,6 @@ import auth from '@react-native-firebase/auth';
 import { rf, rh, rw } from '../../utils/responsive';
 import { useTheme } from '../../context/Theme';
 import { colors } from '../../utils/color';
-import { strings } from '../../utils/strings';
 import Carousel, {
   ICarouselInstance,
   Pagination,
@@ -26,7 +25,10 @@ import { images } from '../../utils/images';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { StackRootScreen } from '../../types/navigationtype';
 import { useNavigation } from '@react-navigation/native';
-import { RenderPost, User } from '../../types/screens';
+import { RenderPost, Theme, User } from '../../types/screens';
+import { useTranslation } from 'react-i18next';
+import CustomHeader from '../../navigations/CustomHeader';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Profile = () => {
   const [userData, setUserData] = useState<User | null>(null);
@@ -34,7 +36,7 @@ const Profile = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedPost, setSelectedPost] = useState<RenderPost>();
-
+  const { t } = useTranslation();
   const { width: screenWidth } = useWindowDimensions();
   const ITEM_SIZE = screenWidth / 3.05;
   const navigation = useNavigation<StackNavigationProp<StackRootScreen>>();
@@ -73,9 +75,11 @@ const Profile = () => {
     setPosts(userPosts);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-shadow
   const editProfile = (userData: User) => {
     navigation.navigate('EditProfile', { userData, isEdit: true });
   };
+  const styles = inlineStyle(currentTheme, ITEM_SIZE);
   const renderPost = ({ item }: { item: RenderPost }) => {
     return (
       <TouchableOpacity
@@ -88,21 +92,19 @@ const Profile = () => {
           source={{
             uri: item.imageUrl?.[0],
           }}
-          style={[
-            styles.postImage,
-            {
-              width: ITEM_SIZE,
-              height: ITEM_SIZE,
-            },
-          ]}
+          style={styles.postImage}
         />
       </TouchableOpacity>
     );
   };
   return (
-    <>
+    <SafeAreaView
+      edges={['top', 'left', 'right']}
+      style={styles.safeAreaViewStyle}
+    >
+      <CustomHeader route="Profile" />
       <ScrollView
-        style={[styles.container, { backgroundColor: currentTheme.background }]}
+        style={styles.container}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -120,10 +122,8 @@ const Profile = () => {
 
           <View style={styles.statsContainer}>
             <View style={styles.statBox}>
-              <Text style={[styles.count, { color: currentTheme.text }]}>
-                {posts.length}
-              </Text>
-              <Text style={{ color: currentTheme.text }}>{strings.posts}</Text>
+              <Text style={styles.count}>{posts.length}</Text>
+              <Text style={styles.text}>{t('posts')}</Text>
             </View>
             <TouchableOpacity
               style={styles.statBox}
@@ -133,12 +133,10 @@ const Profile = () => {
                 })
               }
             >
-              <Text style={[styles.count, { color: currentTheme.text }]}>
+              <Text style={styles.count}>
                 {userData?.followers?.length || 0}
               </Text>
-              <Text style={{ color: currentTheme.text }}>
-                {strings.followers}
-              </Text>
+              <Text style={styles.text}>{t('followers')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -149,17 +147,15 @@ const Profile = () => {
                 })
               }
             >
-              <Text style={[styles.count, { color: currentTheme.text }]}>
+              <Text style={styles.count}>
                 {userData?.following?.length || 0}
               </Text>
-              <Text style={{ color: currentTheme.text }}>
-                {strings.following}
-              </Text>
+              <Text style={styles.text}>{t('following')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <Text style={[styles.name, { color: currentTheme.text }]}>
+        <Text style={styles.name}>
           {userData?.firstName} {userData?.lastName}
         </Text>
 
@@ -171,9 +167,7 @@ const Profile = () => {
             }
           }}
         >
-          <Text style={[styles.editText, { color: currentTheme.text }]}>
-            {strings.edit_profile}
-          </Text>
+          <Text style={styles.editText}>{t('edit_profile')}</Text>
         </TouchableOpacity>
 
         <FlatList
@@ -197,13 +191,7 @@ const Profile = () => {
         backdropColor={'rgba(0, 0, 0, 0.5)'}
       >
         <View style={styles.modalView}>
-          <View
-            style={[
-              {
-                backgroundColor: currentTheme.background,
-              },
-            ]}
-          >
+          <View style={styles.modalInnerView}>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
               <Image source={images.close} style={styles.closeImage} />
             </TouchableOpacity>
@@ -227,8 +215,8 @@ const Profile = () => {
                     <Image
                       source={{ uri: imageUrl }}
                       style={{
-                        width: rw(400),
-                        height: rh(400),
+                        width: screenWidth * 0.85,
+                        height: screenWidth * 0.85,
                       }}
                       resizeMode="contain"
                     />
@@ -250,108 +238,120 @@ const Profile = () => {
           </View>
         </View>
       </Modal>
-    </>
+    </SafeAreaView>
   );
 };
 
 export default Profile;
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  listContainer: {
-    paddingVertical: rh(10),
-  },
-  columnWrapper: {
-    justifyContent: 'flex-start',
-  },
-  header: {
-    flexDirection: 'row',
-    marginHorizontal: rw(20),
-    alignItems: 'center',
-    marginTop: rh(10),
-  },
-  imageView: {
-    width: rw(100),
-    height: rw(100),
-    borderRadius: 60,
-    borderWidth: 2,
-    borderColor: colors.offGray,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileImage: {
-    width: rw(90),
-    height: rw(90),
-    borderRadius: 45,
-  },
+const inlineStyle = (currentTheme: Theme, ITEM_SIZE: number) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: currentTheme.background,
+    },
+    safeAreaViewStyle: { backgroundColor: currentTheme.background, flex: 1 },
 
-  statsContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
+    listContainer: {
+      paddingVertical: rh(10),
+    },
+    columnWrapper: {
+      justifyContent: 'flex-start',
+    },
+    header: {
+      flexDirection: 'row',
+      marginHorizontal: rw(20),
+      alignItems: 'center',
+      marginTop: rh(10),
+    },
+    imageView: {
+      width: rw(100),
+      height: rw(100),
+      borderRadius: 60,
+      borderWidth: 2,
+      borderColor: colors.offGray,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    profileImage: {
+      width: rw(90),
+      height: rw(90),
+      borderRadius: 45,
+    },
 
-  statBox: {
-    alignItems: 'center',
-  },
+    statsContainer: {
+      flex: 1,
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+    },
 
-  count: {
-    fontSize: rf(18),
-    fontWeight: '700',
-  },
+    statBox: {
+      alignItems: 'center',
+    },
 
-  name: {
-    fontSize: rf(18),
-    fontWeight: '700',
-    marginHorizontal: rw(20),
-    marginVertical: rh(10),
-  },
+    count: {
+      fontSize: rf(18),
+      fontWeight: '700',
+      color: currentTheme.text,
+    },
+    text: { color: currentTheme.text },
 
-  editBtn: {
-    marginHorizontal: rw(20),
-    borderWidth: 1,
-    borderColor: colors.offGray,
-    borderRadius: 8,
-    paddingVertical: rh(10),
-    alignItems: 'center',
-    marginVertical: rh(10),
-  },
+    name: {
+      fontSize: rf(18),
+      fontWeight: '700',
+      marginHorizontal: rw(20),
+      marginVertical: rh(10),
+      color: currentTheme.text,
+    },
 
-  editText: {
-    fontWeight: '600',
-  },
+    editBtn: {
+      marginHorizontal: rw(20),
+      borderWidth: 1,
+      borderColor: colors.offGray,
+      borderRadius: 8,
+      paddingVertical: rh(10),
+      alignItems: 'center',
+      marginVertical: rh(10),
+    },
 
-  postImage: {
-    margin: rw(1),
-  },
-  dot: {
-    backgroundColor: colors.lightGray,
-    borderRadius: 50,
-    width: rw(8),
-    height: rw(8),
-  },
-  activeDot: {
-    backgroundColor: colors.blue,
-  },
-  paginationContainer: {
-    marginVertical: rh(10),
-    gap: rw(8),
-  },
+    editText: {
+      fontWeight: '600',
+      color: currentTheme.text,
+    },
 
-  modalView: {
-    borderRadius: 20,
-    padding: rw(35),
-    alignItems: 'center',
+    postImage: {
+      margin: rw(1),
+      width: ITEM_SIZE,
+      height: ITEM_SIZE,
+    },
+    dot: {
+      backgroundColor: colors.lightGray,
+      borderRadius: 50,
+      width: rw(8),
+      height: rw(8),
+    },
+    activeDot: {
+      backgroundColor: colors.blue,
+    },
+    paginationContainer: {
+      marginVertical: rh(10),
+      gap: rw(8),
+    },
 
-    flex: 1,
-    justifyContent: 'center',
-  },
-  closeImage: {
-    width: rw(20),
-    height: rw(20),
-    alignSelf: 'flex-end',
-    marginTop: rh(10),
-    marginHorizontal: rw(20),
-  },
-});
+    modalView: {
+      borderRadius: 20,
+      padding: rw(35),
+      alignItems: 'center',
+
+      flex: 1,
+      justifyContent: 'center',
+    },
+    modalInnerView: { backgroundColor: currentTheme.background },
+    closeImage: {
+      width: rw(20),
+      height: rw(20),
+      alignSelf: 'flex-end',
+      marginTop: rh(10),
+      marginHorizontal: rw(20),
+      tintColor: currentTheme.text,
+    },
+  });

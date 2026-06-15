@@ -50,6 +50,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: rw(10),
+    marginBottom: rh(10),
   },
   buttonText: {
     fontSize: rf(16),

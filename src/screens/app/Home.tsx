@@ -15,6 +15,8 @@ import {
   RefreshControl,
   useWindowDimensions,
   ActivityIndicator,
+  Platform,
+  I18nManager,
 } from 'react-native';
 
 import firestore from '@react-native-firebase/firestore';
@@ -26,18 +28,23 @@ import Carousel, {
   Pagination,
 } from 'react-native-reanimated-carousel';
 
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import BottomSheet, {
+  BottomSheetBackdrop,
+  BottomSheetFlatList,
+  BottomSheetTextInput,
+} from '@gorhom/bottom-sheet';
 
 import { useSharedValue } from 'react-native-reanimated';
-import CustomInput from '../../components/common/CustomInput';
+
 import { colors } from '../../utils/color';
-import { strings } from '../../utils/strings';
 import { useTheme } from '../../context/Theme';
-import { Comments, Post } from '../../types/screens';
-// const { width } = Dimensions.get('window');
+import { Comments, Post, Theme } from '../../types/screens';
+import { useTranslation } from 'react-i18next';
+import CustomHeader from '../../navigations/CustomHeader';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Home = () => {
+  const { t } = useTranslation();
   const { currentTheme, themeMode } = useTheme();
   const [posts, setPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<Comments[]>([]);
@@ -196,26 +203,27 @@ const Home = () => {
       animated: true,
     });
   };
-
+  const isRTL = I18nManager.isRTL;
+  const styles = inlineStyle(currentTheme, isRTL);
   const renderPost = ({ item }: { item: Post }) => {
+    // eslint-disable-next-line no-array-constructor
     const data = [...new Array(...item.imageUrl).values()];
     const currentUser = auth().currentUser?.uid as string;
     return (
-      <View style={[styles.card]}>
+      <View style={styles.card}>
         <View style={styles.leftContainer}>
           <Image
             source={{
               uri: item.user?.profileImage,
             }}
             style={styles.profile}
+            resizeMode="contain"
           />
-          <View style={[{ flex: 1 }]}>
-            <Text style={[styles.name, { color: currentTheme.text }]}>
+          <View style={styles.flex}>
+            <Text style={styles.name}>
               {item.user?.firstName} {item.user?.lastName}
             </Text>
-            <Text style={[styles.description, { color: currentTheme.text }]}>
-              {item.title}
-            </Text>
+            <Text style={styles.description}>{item.title}</Text>
           </View>
         </View>
         <Carousel
@@ -227,6 +235,7 @@ const Home = () => {
           data={data}
           onProgressChange={progress}
           scrollAnimationDuration={1000}
+          // eslint-disable-next-line @typescript-eslint/no-shadow
           renderItem={({ item }) => {
             return (
               <Image
@@ -285,23 +294,15 @@ const Home = () => {
           <View style={styles.mr60} />
         </View>
         {item.likes?.length > 0 && (
-          <Text style={[styles.likeText, { color: currentTheme.text }]}>
-            {strings.liked_by} {item.lastLikedUser?.firstName}{' '}
+          <Text style={styles.likeText}>
+            {t('liked_by')} {item.lastLikedUser?.firstName}{' '}
             {item.lastLikedUser?.lastName}
             {item.likes.length > 1
               ? ` and ${item.likes.length - 1} others`
               : ''}
           </Text>
         )}
-        <Text
-          style={[
-            styles.description,
-            styles.descriptionStyle,
-            {
-              color: currentTheme.text,
-            },
-          ]}
-        >
+        <Text style={[styles.description, styles.descriptionStyle]}>
           <Text style={styles.name}>
             {item.user?.firstName} {item.user?.lastName}{' '}
           </Text>
@@ -311,6 +312,7 @@ const Home = () => {
     );
   };
 
+  // eslint-disable-next-line react/no-unstable-nested-components
   const ListEmptyComponent = () => {
     if (loading) {
       return (
@@ -322,170 +324,225 @@ const Home = () => {
 
     return (
       <View style={styles.emptyContainer}>
-        <Text style={[styles.emptyText, { color: currentTheme.text }]}>
-          {strings.noPost}
-        </Text>
+        <Text style={styles.emptyText}>{t('noPost')}</Text>
       </View>
     );
   };
   return (
-    <GestureHandlerRootView
-      style={[styles.flex, { backgroundColor: currentTheme.background }]}
+    <SafeAreaView
+      edges={['top', 'left', 'right', 'bottom']}
+      style={styles.safeAreaViewStyle}
     >
-      <FlatList
-        data={posts}
-        keyExtractor={item => item.id}
-        renderItem={renderPost}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        ListEmptyComponent={ListEmptyComponent}
-      />
+      <CustomHeader route="Instagram" />
+      <View style={styles.flex}>
+        <FlatList
+          data={posts}
+          keyExtractor={item => item.id}
+          renderItem={renderPost}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          ListEmptyComponent={ListEmptyComponent}
+        />
+        <BottomSheet
+          ref={bottomSheetRef}
+          index={0}
+          enablePanDownToClose={true}
+          snapPoints={snapPoints}
+          keyboardBehavior="extend"
+          android_keyboardInputMode="adjustResize"
+          backgroundStyle={styles.bottomSheetStyle}
+          // eslint-disable-next-line react/no-unstable-nested-components
+          backdropComponent={props => (
+            <BottomSheetBackdrop
+              {...props}
+              pressBehavior={'close'}
+              appearsOnIndex={0}
+              disappearsOnIndex={-1}
+            />
+          )}
+          handleIndicatorStyle={{ backgroundColor: currentTheme.text }}
+        >
+          <View style={styles.flex}>
+            <Text style={styles.commentTitle}>{t('comments')}</Text>
 
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={-1}
-        enablePanDownToClose={true}
-        snapPoints={snapPoints}
-        keyboardBehavior="interactive"
-        keyboardBlurBehavior="restore"
-      >
-        <View style={[styles.flex, { marginVertical: rw(5) }]}>
-          <Text style={styles.commentTitle}>{strings.comments}</Text>
-          <BottomSheetFlatList
-            data={comments}
-            keyExtractor={item => item?.id}
-            renderItem={({ item }: { item: Comments }) => {
-              return (
-                <>
+            <BottomSheetFlatList
+              data={comments}
+              keyExtractor={item => item?.id}
+              scrollEnabled={true}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.pb20}
+              renderItem={({ item }: { item: Comments }) => {
+                return (
                   <View style={styles.leftContainer}>
                     <Image
-                      source={{
-                        uri: item.user?.profileImage,
-                      }}
+                      source={{ uri: item.user?.profileImage }}
                       style={styles.profile}
+                      resizeMode="contain"
                     />
-
                     <View style={styles.flex}>
                       <Text style={styles.name}>
                         {item.user?.firstName} {item.user?.lastName}
                       </Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.description}>{item.comment}</Text>
-                      </View>
+                      <Text style={styles.description}>{item.comment}</Text>
                     </View>
                   </View>
-                </>
-              );
-            }}
-            contentContainerStyle={styles.pb20}
-            showsVerticalScrollIndicator={false}
-          />
+                );
+              }}
+            />
 
-          <CustomInput
-            placeholder="Write comment..."
-            value={commentText}
-            onChangeText={setCommentText}
-            rightImage={images.send}
-            onPressImage={addComment}
-            style={{ backgroundColor: colors.white }}
-          />
-        </View>
-      </BottomSheet>
-    </GestureHandlerRootView>
+            <View style={styles.inputView}>
+              <BottomSheetTextInput
+                placeholder={t('write_comment')}
+                value={commentText}
+                onChangeText={setCommentText}
+                placeholderTextColor={currentTheme.text}
+                style={styles.input}
+              />
+              <TouchableOpacity style={styles.buttonView} onPress={addComment}>
+                <Image
+                  source={images.send}
+                  style={[
+                    styles.sendImage,
+                    {
+                      tintColor:
+                        themeMode === 'dark' ? colors.white : colors.black,
+                    },
+                  ]}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </BottomSheet>
+      </View>
+    </SafeAreaView>
   );
 };
+
 export default Home;
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: rw(12),
-  },
-  pb20: { paddingBottom: rh(20) },
-  leftContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: rw(20),
-    marginVertical: rh(10),
-    flex: 1,
-  },
-  dot: {
-    backgroundColor: colors.lightGray,
-    borderRadius: 50,
-    width: rw(8),
-    height: rw(8),
-  },
-  profile: {
-    alignSelf: 'flex-start',
-    width: rw(45),
-    height: rw(45),
-    borderRadius: 22,
-    marginRight: rw(10),
-  },
-  flex: { flex: 1 },
+const inlineStyle = (currentTheme: Theme, isRTL: boolean) =>
+  StyleSheet.create({
+    card: {
+      borderRadius: rw(12),
+    },
+    inputContainer: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: 'transparent',
+      paddingHorizontal: 16,
+      paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+    },
+    pb20: { paddingBottom: rh(20) },
+    leftContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: rw(20),
+      marginVertical: rh(10),
+      flex: 1,
+    },
+    dot: {
+      backgroundColor: colors.lightGray,
+      borderRadius: 50,
+      width: rw(8),
+      height: rw(8),
+    },
+    profile: {
+      alignSelf: 'flex-start',
+      width: rw(45),
+      height: rw(45),
+      borderRadius: 22,
+      marginRight: rw(10),
+    },
+    flex: { flex: 1, backgroundColor: currentTheme.background },
 
-  name: {
-    fontWeight: '700',
-    fontSize: rf(16),
-    // flex: 1,
-  },
+    name: {
+      fontWeight: '700',
+      fontSize: rf(16),
+      color: currentTheme.text,
+    },
 
-  paginationContainer: {
-    gap: rw(8),
-  },
+    paginationContainer: {
+      gap: rw(8),
+    },
 
-  activeDot: {
-    backgroundColor: colors.blue,
-  },
+    activeDot: {
+      backgroundColor: colors.blue,
+    },
 
-  description: {
-    marginTop: rh(5),
-  },
-  descriptionStyle: {
-    marginHorizontal: rw(20),
-    marginTop: rh(10),
-  },
+    description: {
+      marginTop: rh(5),
+      color: currentTheme.text,
+    },
+    descriptionStyle: {
+      marginHorizontal: rw(20),
+      marginTop: rh(10),
+    },
 
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: rw(20),
-    justifyContent: 'space-between',
-    marginTop: rh(15),
-  },
+    actions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: rw(20),
+      justifyContent: 'space-between',
+      marginTop: rh(15),
+    },
 
-  commentTitle: {
-    fontSize: rf(20),
-    fontWeight: '700',
-    marginHorizontal: rw(20),
-    marginBottom: rh(20),
-  },
-  imageCarousel: { height: rh(250) },
-  heartImage: { width: rw(30), height: rh(30) },
-  heartView: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: rw(10),
-  },
-  commentImage: {
-    width: rw(27),
-    height: rw(27),
-  },
-  mr60: { marginRight: rw(60) },
-  likeText: {
-    marginHorizontal: rw(20),
-    marginTop: rh(10),
-    fontWeight: '600',
-  },
-  emptyContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: rh(250),
-  },
+    commentTitle: {
+      fontSize: rf(20),
+      fontWeight: '700',
+      marginHorizontal: rw(20),
+      marginBottom: rh(20),
+      color: currentTheme.text,
+    },
+    imageCarousel: { height: rh(250) },
+    heartImage: { width: rw(30), height: rh(30) },
+    heartView: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: rw(10),
+    },
+    commentImage: {
+      width: rw(27),
+      height: rw(27),
+    },
+    mr60: { marginRight: rw(60) },
+    likeText: {
+      marginHorizontal: rw(20),
+      marginTop: rh(10),
+      fontWeight: '600',
+      color: currentTheme.text,
+    },
+    emptyContainer: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: rh(250),
+    },
 
-  emptyText: {
-    color: colors.gray,
-    fontSize: rf(16),
-  },
-});
+    emptyText: {
+      fontSize: rf(16),
+      color: currentTheme.text,
+    },
+    bottomSheetStyle: { backgroundColor: currentTheme.background },
+    input: {
+      // backgroundColor: currentTheme.background,
+      flex: 1,
+      // height: rh(50),
+      textAlign: isRTL ? 'right' : 'left',
+      color: currentTheme.text,
+    },
+    safeAreaViewStyle: { backgroundColor: currentTheme.background, flex: 1 },
+    inputView: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      borderBottomColor: colors.blueGray,
+      borderBottomWidth: 2,
+      marginHorizontal: rw(20),
+      paddingBottom: 10,
+      backgroundColor: currentTheme.background,
+    },
+    buttonView: { alignSelf: 'center', paddingLeft: 10 },
+    sendImage: { width: rw(25), height: rw(25) },
+  });

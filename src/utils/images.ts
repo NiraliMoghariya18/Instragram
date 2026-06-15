@@ -38,3 +38,28 @@ export const images = {
   blackBack: require('../assets/icons/blackBack.png'),
   whiteBack: require('../assets/icons/whiteBack.png'),
 };
+
+export const RANDOM_IMAGES = [
+  'https://fastly.picsum.photos/id/1011/500/500.jpg?hmac=YN3oCpwpniYpKEclMAlUd1vWTmlpeh6BUdpODrFAINc',
+  'https://fastly.picsum.photos/id/1015/500/500.jpg?hmac=LNni84jXVOXdvxYPr-DoeAxRSQnnd-9Sf_-CunUKGYI',
+  'https://fastly.picsum.photos/id/1025/500/500.jpg?hmac=-8oa3YhiI2vz-AJSkoxWl_7uP0QpVYMmQabi48iqMHM',
+  'https://fastly.picsum.photos/id/1035/500/500.jpg?hmac=VgIFigWEM4x04jktFvmZVXDqJVVq6XHYyTtPX9C8PtQ',
+  'https://fastly.picsum.photos/id/1040/500/500.jpg?hmac=bmdEjFeT-uNd51SRuaCY9lKhha5_o8mKmJ5gFTkXBNc',
+  'https://fastly.picsum.photos/id/1050/500/500.jpg?hmac=RTjRfuSRUndu2kdCIsGfJq27Vx6u280W8xaA7R4nFGk',
+  'https://fastly.picsum.photos/id/1060/500/500.jpg?hmac=1_Zfj2QnxUoauTpLLb7BO881mQrrsM9pgyEDTuOw-QM',
+  'https://fastly.picsum.photos/id/1070/500/500.jpg?hmac=fFiEzBh4MVKg9RRd9A3Rdsbvza9QeuqcnNdsKHJzo-8',
+  'https://fastly.picsum.photos/id/1080/500/500.jpg?hmac=yIT2RDfQXaNeihJn27EjmEjuQzADHzr-QtozN0qaz7Y',
+];
+
+export const defaultImages = [
+  'https://randomuser.me/api/portraits/men/1.jpg',
+  'https://randomuser.me/api/portraits/women/2.jpg',
+  'https://randomuser.me/api/portraits/men/3.jpg',
+  'https://randomuser.me/api/portraits/women/4.jpg',
+  'https://randomuser.me/api/portraits/men/5.jpg',
+  'https://randomuser.me/api/portraits/women/6.jpg',
+  'https://randomuser.me/api/portraits/men/7.jpg',
+  'https://randomuser.me/api/portraits/women/8.jpg',
+  'https://randomuser.me/api/portraits/men/9.jpg',
+  'https://randomuser.me/api/portraits/women/10.jpg',
+];

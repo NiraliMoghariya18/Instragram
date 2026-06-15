@@ -8,6 +8,7 @@ import {
   Dimensions,
   ScrollView,
   Text,
+  KeyboardAvoidingView,
 } from 'react-native';
 import ImagePicker, {
   Image as PickerImage,
@@ -17,26 +18,17 @@ import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import { rf, rh, rw } from '../../utils/responsive';
 import { colors } from '../../utils/color';
-import { images } from '../../utils/images';
+import { images, RANDOM_IMAGES } from '../../utils/images';
 import CustomInput from '../../components/common/CustomInput';
 import CustomButton from '../../components/common/CustomButton';
-import { strings } from '../../utils/strings';
 import { useTheme } from '../../context/Theme';
 import Toast from 'react-native-toast-message';
+import { useTranslation } from 'react-i18next';
+import CustomHeader from '../../navigations/CustomHeader';
+import { Theme } from '../../types/screens';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
-
-const RANDOM_IMAGES = [
-  'https://fastly.picsum.photos/id/1011/500/500.jpg?hmac=YN3oCpwpniYpKEclMAlUd1vWTmlpeh6BUdpODrFAINc',
-  'https://fastly.picsum.photos/id/1015/500/500.jpg?hmac=LNni84jXVOXdvxYPr-DoeAxRSQnnd-9Sf_-CunUKGYI',
-  'https://fastly.picsum.photos/id/1025/500/500.jpg?hmac=-8oa3YhiI2vz-AJSkoxWl_7uP0QpVYMmQabi48iqMHM',
-  'https://fastly.picsum.photos/id/1035/500/500.jpg?hmac=VgIFigWEM4x04jktFvmZVXDqJVVq6XHYyTtPX9C8PtQ',
-  'https://fastly.picsum.photos/id/1040/500/500.jpg?hmac=bmdEjFeT-uNd51SRuaCY9lKhha5_o8mKmJ5gFTkXBNc',
-  'https://fastly.picsum.photos/id/1050/500/500.jpg?hmac=RTjRfuSRUndu2kdCIsGfJq27Vx6u280W8xaA7R4nFGk',
-  'https://fastly.picsum.photos/id/1060/500/500.jpg?hmac=1_Zfj2QnxUoauTpLLb7BO881mQrrsM9pgyEDTuOw-QM',
-  'https://fastly.picsum.photos/id/1070/500/500.jpg?hmac=fFiEzBh4MVKg9RRd9A3Rdsbvza9QeuqcnNdsKHJzo-8',
-  'https://fastly.picsum.photos/id/1080/500/500.jpg?hmac=yIT2RDfQXaNeihJn27EjmEjuQzADHzr-QtozN0qaz7Y',
-];
 
 interface Error {
   title?: string;
@@ -50,26 +42,27 @@ const AddPost = () => {
   const [selectedImages, setSelectedImages] = useState<PickerImage[]>([]);
   const [errors, setErrors] = useState<Error>({});
   const { currentTheme, themeMode } = useTheme();
-
+  const { t } = useTranslation();
   const getRandomImageUrl = () => {
     const randomIndex = Math.floor(Math.random() * RANDOM_IMAGES.length);
-
     return RANDOM_IMAGES[randomIndex];
   };
 
   const handleSuccess = () => {
     Toast.show({
       type: 'success',
-      text1: `✅ Created the post successFully `,
+      text1: t('create_Post'),
     });
   };
+
   const validate = () => {
     const newErrors: Error = {};
 
-    if (!title.trim()) newErrors.title = 'Title is required';
-    if (!description.trim()) newErrors.description = 'Description is required';
+    if (!title.trim()) newErrors.title = t('title_validation');
+    if (!description.trim())
+      newErrors.description = t('description_validation');
     if (selectedImages.length === 0) {
-      newErrors.selectedImages = 'Image is required';
+      newErrors.selectedImages = t('image_validation');
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -122,131 +115,129 @@ const AddPost = () => {
       console.log(error);
     }
   };
+
+  const styles = inlineStyle(currentTheme);
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: currentTheme.background }]}
-      showsVerticalScrollIndicator={false}
+    <SafeAreaView
+      edges={['top', 'left', 'right']}
+      style={styles.safeAreaViewStyle}
     >
-      {selectedImages.length > 0 ? (
-        <View style={styles.carouselView}>
-          <Carousel
-            loop={false}
-            width={width - 30}
-            height={300}
-            data={selectedImages}
-            renderItem={({ item }) => (
-              <Image source={{ uri: item.path }} style={styles.image} />
-            )}
-          />
-        </View>
-      ) : (
-        <View style={styles.profileView}>
-          <TouchableOpacity
-            onPress={pickImages}
-            style={[
-              styles.imagePickerField,
-              {
-                backgroundColor: currentTheme.background,
-                borderColor: currentTheme.text,
-              },
-            ]}
-          >
-            <Image
-              source={themeMode === 'light' ? images.blackAdd : images.whiteAdd}
-              resizeMode="contain"
-              style={[styles.addImage]}
-            />
-          </TouchableOpacity>
-          {errors.selectedImages && (
-            <Text style={styles.errorText}>{errors.selectedImages}</Text>
+      <CustomHeader route="Add Post" />
+      <KeyboardAvoidingView style={styles.container}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {selectedImages.length > 0 ? (
+            <View style={styles.carouselView}>
+              <Carousel
+                loop={false}
+                width={width - 30}
+                height={300}
+                data={selectedImages}
+                renderItem={({ item }) => (
+                  <Image source={{ uri: item.path }} style={styles.image} />
+                )}
+              />
+            </View>
+          ) : (
+            <View style={styles.profileView}>
+              <TouchableOpacity
+                onPress={pickImages}
+                style={styles.imagePickerField}
+              >
+                <Image
+                  source={
+                    themeMode === 'light' ? images.blackAdd : images.whiteAdd
+                  }
+                  resizeMode="contain"
+                  style={styles.addImage}
+                />
+              </TouchableOpacity>
+              {errors.selectedImages && (
+                <Text style={styles.errorText}>{errors.selectedImages}</Text>
+              )}
+            </View>
           )}
-        </View>
-      )}
 
-      <CustomInput
-        placeholder="Title"
-        value={title}
-        onChangeText={onChangeTitle}
-        variant="primary"
-        style={[
-          styles.mt,
-          {
-            backgroundColor:
-              themeMode === 'dark' ? currentTheme.background : undefined,
-            color: currentTheme.text,
-          },
-        ]}
-        error={errors.title}
-        placeholderTextColor={currentTheme.text}
-      />
-      <CustomInput
-        placeholder="Description"
-        value={description}
-        onChangeText={onChangeDescription}
-        multiline={true}
-        numberOfLines={4}
-        variant="primary"
-        style={[
-          styles.input,
-          {
-            backgroundColor:
-              themeMode === 'dark' ? currentTheme.background : undefined,
-            color: currentTheme.text,
-          },
-        ]}
-        error={errors.description}
-        placeholderTextColor={currentTheme.text}
-      />
+          <CustomInput
+            placeholder={t('title')}
+            value={title}
+            onChangeText={onChangeTitle}
+            variant="primary"
+            style={styles.mt}
+            error={errors.title}
+            placeholderTextColor={currentTheme.text}
+          />
+          <CustomInput
+            placeholder={t('description')}
+            value={description}
+            onChangeText={onChangeDescription}
+            multiline={true}
+            numberOfLines={4}
+            variant="primary"
+            style={styles.input}
+            error={errors.description}
+            placeholderTextColor={currentTheme.text}
+          />
 
-      <CustomButton label={strings.create_post} onPress={createPost} />
-    </ScrollView>
+          <CustomButton label={t('create_post')} onPress={createPost} />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 export default AddPost;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  carouselView: {
-    marginTop: rh(15),
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'center',
-    marginBottom: rh(20),
-  },
-  addImage: { width: rw(30), height: rh(30) },
-  mt: { marginTop: rh(5) },
-  profileView: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: rh(10),
-  },
-  errorText: {
-    fontSize: rf(12),
-    color: colors.red,
-    marginTop: rh(5),
-  },
-  imagePickerField: {
-    height: rw(120),
-    width: rw(120),
-    backgroundColor: colors.offWhite,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 4,
-    borderColor: colors.black,
-    marginVertical: rh(10),
-    borderRadius: rw(20),
-  },
+const inlineStyle = (currentTheme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: currentTheme.background,
+    },
+    safeAreaViewStyle: { backgroundColor: currentTheme.background, flex: 1 },
+    carouselView: {
+      marginTop: rh(15),
+      justifyContent: 'center',
+      alignItems: 'center',
+      alignSelf: 'center',
+      marginBottom: rh(20),
+    },
+    addImage: { width: rw(30), height: rh(30) },
+    mt: {
+      marginTop: rh(5),
+      color: currentTheme.text,
+      backgroundColor: currentTheme.background,
+    },
+    profileView: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginVertical: rh(10),
+    },
+    errorText: {
+      fontSize: rf(12),
+      color: colors.red,
+      marginTop: rh(5),
+    },
+    imagePickerField: {
+      height: rw(120),
+      width: rw(120),
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 4,
+      marginVertical: rh(10),
+      borderRadius: rw(20),
+      backgroundColor: currentTheme.background,
+      borderColor: currentTheme.text,
+    },
 
-  image: {
-    width: rw(400),
-    height: rh(300),
-    borderRadius: rw(15),
-  },
-  input: {
-    paddingVertical: rh(14),
-    paddingHorizontal: rw(15),
-  },
-});
+    image: {
+      width: rw(400),
+      height: rh(300),
+      borderRadius: rw(15),
+    },
+    input: {
+      paddingVertical: rh(14),
+      paddingHorizontal: rw(15),
+      color: currentTheme.text,
+      backgroundColor: currentTheme.background,
+    },
+  });

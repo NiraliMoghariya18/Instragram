@@ -16,20 +16,31 @@ interface Props {
   onSelect: () => void;
   disabled?: boolean;
   style?: StyleProp<TextStyle>;
+  error?: string;
 }
 
-const RadioButton = ({ label, selected, onSelect, disabled, style }: Props) => {
+const RadioButton = ({
+  label,
+  selected,
+  onSelect,
+  disabled,
+  style,
+  error,
+}: Props) => {
   return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={onSelect}
-      disabled={disabled}
-    >
-      <View style={styles.outerCircle}>
-        {selected ? <View style={styles.innerCircle} /> : null}
-      </View>
-      <Text style={[styles.label, style]}>{label}</Text>
-    </TouchableOpacity>
+    <>
+      <TouchableOpacity
+        style={styles.container}
+        onPress={onSelect}
+        disabled={disabled}
+      >
+        <View style={styles.outerCircle}>
+          {selected ? <View style={styles.innerCircle} /> : null}
+        </View>
+        <Text style={[styles.label, style]}>{label}</Text>
+      </TouchableOpacity>
+      {error && <Text style={styles.errorText}>{error}</Text>}
+    </>
   );
 };
 
@@ -58,6 +69,11 @@ const styles = StyleSheet.create({
   label: {
     fontSize: rf(16),
     color: colors.black,
+  },
+  errorText: {
+    fontSize: rf(12),
+    color: colors.red,
+    marginTop: rh(5),
   },
 });
 

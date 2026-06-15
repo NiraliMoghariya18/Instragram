@@ -1,5 +1,12 @@
-import React from 'react';
-import { View, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  Platform,
+  Keyboard,
+} from 'react-native';
 import { rw, rh } from '../utils/responsive';
 
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -9,6 +16,31 @@ import { useTheme } from '../context/Theme';
 
 const CustomBottomTabbar = ({ state, navigation }: BottomTabBarProps) => {
   const { currentTheme, themeMode } = useTheme();
+
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === 'android' ? 'keyboardDidShow' : 'keyboardWillShow';
+    const hideEvent =
+      Platform.OS === 'android' ? 'keyboardDidHide' : 'keyboardWillHide';
+
+    const showSubscription = Keyboard.addListener(showEvent, () => {
+      setIsKeyboardVisible(true);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setIsKeyboardVisible(false);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
+
+  if (isKeyboardVisible) {
+    return null;
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: currentTheme.card }]}>
@@ -56,8 +88,15 @@ const CustomBottomTabbar = ({ state, navigation }: BottomTabBarProps) => {
             iconSource = isFocused ? images.activeProfile : images.profile;
           }
         }
+
         const onPress = () => {
-          if (!isFocused) {
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
+
+          if (!isFocused && !event.defaultPrevented) {
             navigation.navigate(route.name);
           }
         };
@@ -87,7 +126,7 @@ export default CustomBottomTabbar;
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    height: rh(90),
+    height: rh(80),
     backgroundColor: colors.white,
     elevation: 8,
   },

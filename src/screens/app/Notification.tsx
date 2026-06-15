@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   StyleSheet,
@@ -9,20 +9,21 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import { rf, rh, rw } from '../../utils/responsive';
 import { colors } from '../../utils/color';
 import Toast from 'react-native-toast-message';
-import { strings } from '../../utils/strings';
 import { useTheme } from '../../context/Theme';
-import { RequestType } from '../../types/screens';
+import { RequestType, Theme } from '../../types/screens';
+import { useTranslation } from 'react-i18next';
+import CustomHeader from '../../navigations/CustomHeader';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Notification = () => {
   const currentUserId = auth().currentUser?.uid;
   const { currentTheme } = useTheme();
-
+  const { t } = useTranslation();
   const [requests, setRequests] = useState<RequestType[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -57,23 +58,27 @@ const Notification = () => {
         } catch (error) {
           console.log(error);
           setLoading(false);
+          if (error instanceof Error) {
+            Alert.alert('Error', 'Something went wrong');
+          }
         }
       });
 
     return () => unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
+  const styles = inlineStyle(currentTheme);
   const handleSuccess = (firstName: string) => {
     Toast.show({
       type: 'success',
-      text1: `✅ Accepted the follow Req ${firstName} `,
+      text1: t('accept_follow_req', { name: firstName }),
     });
   };
 
-  const handleDeleteReq = (firstName: string) => {
+  const handleDeleteReq = () => {
     Toast.show({
       type: 'success',
-      text1: `✅ Deleted follow Req ${firstName} `,
+      text1: t('delete_follow_req'),
     });
   };
   const acceptRequest = async (
@@ -103,25 +108,29 @@ const Notification = () => {
       handleSuccess(firstName);
       await batch.commit();
     } catch (error) {
-      console.error('Error:', error);
+      if (error instanceof Error) {
+        Alert.alert('Error', 'Something went wrong');
+      }
     }
   };
 
-  const cancelRequest = async (requestId: string, firstName: string) => {
+  const cancelRequest = async (requestId: string) => {
     try {
       setRequests(prev => prev.filter(item => item.id !== requestId));
 
       await firestore().collection('followRequests').doc(requestId).delete();
-      handleDeleteReq(firstName);
+      handleDeleteReq();
     } catch (error) {
-      console.log(error);
+      if (error instanceof Error) {
+        Alert.alert('Error', 'Something went wrong');
+      }
     }
   };
 
   const renderItem = ({ item }: { item: RequestType }) => {
     const name = item.senderData?.firstName ?? '';
     return (
-      <View style={[styles.card, { backgroundColor: currentTheme.card }]}>
+      <View style={styles.card}>
         <View style={styles.leftContainer}>
           <Image
             source={{
@@ -130,12 +139,9 @@ const Notification = () => {
             style={styles.image}
           />
           <View>
-            <Text style={[styles.username, { color: currentTheme.text }]}>
-              {item.senderData?.firstName || ''}
-            </Text>
-            <Text style={[styles.name, { color: currentTheme.text }]}>
-              {item.senderData?.firstName || ''}
-              {item.senderData?.lastName}
+            <Text style={styles.username}>{name || ''}</Text>
+            <Text style={styles.name}>
+              {name || ''} {item.senderData?.lastName}
             </Text>
           </View>
         </View>
@@ -144,19 +150,20 @@ const Notification = () => {
             style={styles.acceptButton}
             onPress={() => acceptRequest(item.id, item.senderId, name)}
           >
-            <Text style={styles.buttonAcceptText}>{strings.accept}</Text>
+            <Text style={styles.buttonAcceptText}>{t('accept')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.cancelButton}
-            onPress={() => cancelRequest(item.id, name)}
+            onPress={() => cancelRequest(item.id)}
           >
-            <Text style={styles.buttonText}>{strings.delete}</Text>
+            <Text style={styles.buttonText}>{t('delete')}</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   };
 
+  // eslint-disable-next-line react/no-unstable-nested-components
   const ListEmptyComponent = () => {
     if (loading) {
       return (
@@ -168,119 +175,125 @@ const Notification = () => {
 
     return (
       <View style={styles.emptyContainer}>
-        <Text style={[styles.emptyText, { color: currentTheme.text }]}>
-          {strings.noNotification}
-        </Text>
+        <Text style={styles.emptyText}>{t('noNotification')}</Text>
       </View>
     );
   };
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: currentTheme.background }]}
+    <SafeAreaView
+      edges={['top', 'left', 'right']}
+      style={styles.safeAreaViewStyle}
     >
-      <FlatList
-        data={requests}
-        keyExtractor={item => item.id}
-        renderItem={renderItem}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainerStyle}
-        ListEmptyComponent={ListEmptyComponent}
-      />
-    </View>
+      <CustomHeader route="Notification" />
+      <View style={styles.container}>
+        <FlatList
+          data={requests}
+          keyExtractor={item => item.id}
+          renderItem={renderItem}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.contentContainerStyle}
+          ListEmptyComponent={ListEmptyComponent}
+        />
+      </View>
+    </SafeAreaView>
   );
 };
 
 export default Notification;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+const inlineStyle = (currentTheme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: currentTheme.background,
+    },
+    safeAreaViewStyle: { backgroundColor: currentTheme.background, flex: 1 },
 
-  card: {
-    borderRadius: rw(10),
-    padding: rh(15),
-    marginVertical: rh(5),
-    backgroundColor: colors.white,
-    marginHorizontal: rw(10),
+    card: {
+      borderRadius: rw(10),
+      padding: rh(15),
+      marginVertical: rh(5),
+      backgroundColor: currentTheme.card,
+      marginHorizontal: rw(10),
 
-    shadowColor: colors.lightGray,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+      shadowColor: colors.lightGray,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
 
-    elevation: 8,
-  },
+      elevation: 8,
+    },
 
-  leftContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+    leftContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
 
-  image: {
-    width: rw(55),
-    height: rw(55),
-    borderRadius: rw(100),
-    marginRight: rw(12),
-  },
+    image: {
+      width: rw(55),
+      height: rw(55),
+      borderRadius: rw(100),
+      marginRight: rw(12),
+    },
 
-  username: {
-    fontSize: rf(16),
-    fontWeight: '700',
-  },
+    username: {
+      fontSize: rf(16),
+      fontWeight: '700',
+      color: currentTheme.text,
+    },
 
-  name: {
-    fontSize: rf(14),
-    color: colors.lightGray,
-    marginTop: rh(3),
-  },
+    name: {
+      fontSize: rf(14),
+      marginTop: rh(3),
+      color: currentTheme.text,
+    },
 
-  buttonContainer: {
-    flexDirection: 'row',
-    marginTop: rh(15),
-  },
+    buttonContainer: {
+      flexDirection: 'row',
+      marginTop: rh(15),
+    },
 
-  acceptButton: {
-    backgroundColor: colors.blue,
-    paddingHorizontal: rw(18),
-    paddingVertical: rh(10),
-    borderRadius: rw(8),
-    marginRight: rw(10),
-    flex: 1,
-    alignItems: 'center',
-  },
+    acceptButton: {
+      backgroundColor: colors.blue,
+      paddingHorizontal: rw(18),
+      paddingVertical: rh(10),
+      borderRadius: rw(8),
+      marginRight: rw(10),
+      flex: 1,
+      alignItems: 'center',
+    },
 
-  cancelButton: {
-    backgroundColor: colors.mediumDarkGray,
-    paddingHorizontal: rw(18),
-    paddingVertical: rh(10),
-    borderRadius: rw(8),
-    flex: 1,
-    alignItems: 'center',
-  },
+    cancelButton: {
+      backgroundColor: colors.mediumDarkGray,
+      paddingHorizontal: rw(18),
+      paddingVertical: rh(10),
+      borderRadius: rw(8),
+      flex: 1,
+      alignItems: 'center',
+    },
 
-  buttonText: {
-    color: colors.black,
-    fontWeight: '600',
-  },
-  buttonAcceptText: {
-    color: colors.white,
-    fontWeight: '600',
-  },
+    buttonText: {
+      color: colors.black,
+      fontWeight: '600',
+    },
+    buttonAcceptText: {
+      color: colors.white,
+      fontWeight: '600',
+    },
 
-  emptyContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: rh(250),
-  },
+    emptyContainer: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: rh(250),
+    },
 
-  emptyText: {
-    color: colors.gray,
-    fontSize: rf(16),
-  },
-  contentContainerStyle: {
-    paddingBottom: rh(20),
-    marginTop: rh(20),
-  },
-});
+    emptyText: {
+      fontSize: rf(16),
+      color: currentTheme.text,
+    },
+    contentContainerStyle: {
+      paddingBottom: rh(20),
+      marginTop: rh(20),
+    },
+  });

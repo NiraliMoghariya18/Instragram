@@ -6,17 +6,17 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  ScrollView,
 } from 'react-native';
 import CustomInput from '../../components/common/CustomInput';
 import { useRoute } from '@react-navigation/native';
-import { strings } from '../../utils/strings';
 import { colors } from '../../utils/color';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import RadioButton from '../../components/common/CustomRadioButton';
 import { rf, rh, rw } from '../../utils/responsive';
 import DatePicker from 'react-native-date-picker';
 import moment from 'moment';
-import { images } from '../../utils/images';
+import { defaultImages, images } from '../../utils/images';
 import ImagePicker from 'react-native-image-crop-picker';
 import firestore from '@react-native-firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
@@ -25,7 +25,9 @@ import { StackRootScreen } from '../../types/navigationtype';
 import auth from '@react-native-firebase/auth';
 import CustomButton from '../../components/common/CustomButton';
 import { useTheme } from '../../context/Theme';
-import { User } from '../../types/screens';
+import { Theme, User } from '../../types/screens';
+import { useTranslation } from 'react-i18next';
+import Toast from 'react-native-toast-message';
 
 interface Error {
   firstName?: string;
@@ -45,19 +47,19 @@ const EditProfile = () => {
     | undefined;
   const editItem = params?.userData;
   const [firstName, setFirstName] = useState(editItem?.firstName || '');
+  const { t } = useTranslation();
   const [lastName, setLastName] = useState(editItem?.lastName || '');
-  const radioButtons = ['Male', 'Female', 'Other'];
-  const [gender, setGender] = useState<string | undefined>(
-    editItem?.gender || 'Male',
-  );
 
+  const [gender, setGender] = useState<string | undefined>(editItem?.gender);
   const [open, setOpen] = useState(false);
   const [phoneNo, setPhoneNo] = useState<string>(editItem?.phoneNo || '');
   const [email, setEmail] = useState(editItem?.email || '');
-  // const [date, setDate] = useState('');
-  // const [dob, setDob] = useState(
-  //   new Date(moment(editItem?.dob, 'l').toDate()) || new Date(),
-  // );
+
+  const radioButtons = [
+    { key: 'Female', value: t('female') },
+    { key: 'Male', value: t('male') },
+    { key: 'Other', value: t('other') },
+  ];
   const [dob, setDob] = useState('');
   const [date, setDate] = useState(
     new Date(moment(editItem?.dob, 'l').toDate()) || new Date(),
@@ -68,21 +70,16 @@ const EditProfile = () => {
       : editItem?.profileImage) || null,
   );
 
+  const handleSuccess = () => {
+    Toast.show({
+      type: 'success',
+      text1: t('edit_Profile'),
+    });
+  };
+
   const [errors, setErrors] = useState<Error>({});
   const navigation = useNavigation<StackNavigationProp<StackRootScreen>>();
   const { currentTheme, themeMode } = useTheme();
-  const defaultImages = [
-    'https://randomuser.me/api/portraits/men/1.jpg',
-    'https://randomuser.me/api/portraits/women/2.jpg',
-    'https://randomuser.me/api/portraits/men/3.jpg',
-    'https://randomuser.me/api/portraits/women/4.jpg',
-    'https://randomuser.me/api/portraits/men/5.jpg',
-    'https://randomuser.me/api/portraits/women/6.jpg',
-    'https://randomuser.me/api/portraits/men/7.jpg',
-    'https://randomuser.me/api/portraits/women/8.jpg',
-    'https://randomuser.me/api/portraits/men/9.jpg',
-    'https://randomuser.me/api/portraits/women/10.jpg',
-  ];
 
   const getRandomImage = () => {
     const randomIndex = Math.floor(Math.random() * defaultImages.length);
@@ -140,23 +137,23 @@ const EditProfile = () => {
   const validate = () => {
     const newErrors: Error = {};
 
-    if (!firstName.trim()) newErrors.firstName = 'First name is required';
-    if (!lastName.trim()) newErrors.lastName = 'Last name is required';
+    if (!firstName.trim()) newErrors.firstName = t('firstName_validation');
+    if (!lastName.trim()) newErrors.lastName = t('lastName_validation');
 
     if (!phoneNo.trim()) {
-      newErrors.phoneNo = 'Phone number is required';
+      newErrors.phoneNo = t('phoneNumber_validation');
     } else if (!/^\d{10,}$/.test(phoneNo.replace(/[-+() ]/g, ''))) {
-      newErrors.phoneNo = 'Invalid phone number format';
+      newErrors.phoneNo = t('invalid_phoneNumber_validation');
     }
 
-    if (!gender) newErrors.gender = 'Gender selection is required';
+    if (!gender) newErrors.gender = t('gender_validation');
 
-    if (!dob) newErrors.dob = 'Date of birth is required';
+    if (!dob) newErrors.dob = t('DOB_validation');
 
     if (!email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = t('email_validation');
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Invalid email format';
+      newErrors.email = t('invalid_email');
     }
 
     const today = new Date();
@@ -167,7 +164,7 @@ const EditProfile = () => {
     );
 
     if (date > tenYearsAgo) {
-      newErrors.dob = 'You must be at least 10 years old.';
+      newErrors.dob = t('date_validation');
     }
 
     setErrors(newErrors);
@@ -191,7 +188,7 @@ const EditProfile = () => {
         email,
         createdAt: firestore.FieldValue.serverTimestamp(),
       });
-
+      handleSuccess();
       navigation.navigate('DrawerNavigation');
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -199,17 +196,10 @@ const EditProfile = () => {
       }
     }
   };
+  const styles = inlineStyle(currentTheme);
   return (
-    <SafeAreaView
-      edges={['top']}
-      style={[styles.container, { backgroundColor: currentTheme.background }]}
-    >
-      <View
-        style={[
-          styles.headerContainer,
-          { backgroundColor: currentTheme.background },
-        ]}
-      >
+    <SafeAreaView edges={['top']} style={styles.container}>
+      <View style={styles.headerContainer}>
         <TouchableOpacity
           style={styles.left}
           onPress={() => navigation.goBack()}
@@ -219,188 +209,170 @@ const EditProfile = () => {
               source={
                 themeMode === 'light' ? images.blackBack : images.whiteBack
               }
-              style={[styles.icon, { tintColor: currentTheme.text }]}
+              style={styles.icon}
               resizeMode="contain"
             />
           </>
         </TouchableOpacity>
-        <Text style={[styles.instagramText, { color: currentTheme.text }]}>
-          {strings.edit}
-        </Text>
+        <Text style={styles.instagramText}>{t('edit')}</Text>
       </View>
-      <View style={styles.profileView}>
-        <TouchableOpacity onPress={selectImage} style={styles.imagePickerField}>
-          {profileImage ? (
-            <Image source={{ uri: profileImage }} style={styles.preview} />
-          ) : (
-            <Image source={images.add} resizeMode="contain" />
-          )}
-        </TouchableOpacity>
-      </View>
-      <CustomInput
-        placeholder={strings.firstName}
-        value={firstName}
-        onChangeText={onChangeFirstName}
-        placeholderTextColor={colors.lightGray}
-        error={errors.firstName}
-        style={[
-          {
-            backgroundColor:
-              themeMode === 'dark' ? currentTheme.background : undefined,
-            color: currentTheme.text,
-          },
-        ]}
-      />
-      <CustomInput
-        placeholder={strings.lastName}
-        value={lastName}
-        onChangeText={onChangeLastName}
-        placeholderTextColor={colors.lightGray}
-        error={errors.lastName}
-        style={[
-          {
-            backgroundColor:
-              themeMode === 'dark' ? currentTheme.background : undefined,
-            color: currentTheme.text,
-          },
-        ]}
-      />
-      <View style={styles.radioView}>
-        <Text style={[styles.radioText, { color: currentTheme.text }]}>
-          {strings.gender}
-        </Text>
-
-        <View style={styles.radioButtonInnerView}>
-          {radioButtons.map(option => (
-            <RadioButton
-              key={option}
-              label={option}
-              selected={gender === option}
-              disabled={true}
-              onSelect={() => onSelectGender(option)}
-              style={{ color: currentTheme.text }}
-            />
-          ))}
+      <ScrollView>
+        <View style={styles.profileView}>
+          <TouchableOpacity
+            onPress={selectImage}
+            style={styles.imagePickerField}
+          >
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.preview} />
+            ) : (
+              <Image source={images.add} resizeMode="contain" />
+            )}
+          </TouchableOpacity>
         </View>
-      </View>
+        <CustomInput
+          placeholder={t('firstName')}
+          value={firstName}
+          onChangeText={onChangeFirstName}
+          placeholderTextColor={colors.lightGray}
+          error={errors.firstName}
+          style={styles.input}
+        />
+        <CustomInput
+          placeholder={t('lastName')}
+          value={lastName}
+          onChangeText={onChangeLastName}
+          placeholderTextColor={colors.lightGray}
+          error={errors.lastName}
+          style={styles.input}
+        />
+        <View style={styles.radioView}>
+          <Text style={styles.radioText}>{t('gender')}</Text>
 
-      <CustomInput
-        placeholder={strings.phoneNo}
-        placeholderTextColor={colors.lightGray}
-        value={phoneNo}
-        onChangeText={onChangePhoneNo}
-        error={errors.phoneNo}
-        style={[
-          {
-            backgroundColor:
-              themeMode === 'dark' ? currentTheme.background : undefined,
-            color: currentTheme.text,
-          },
-        ]}
-      />
+          <View style={styles.radioButtonInnerView}>
+            {radioButtons.map(option => (
+              <RadioButton
+                key={option.key}
+                label={option.value}
+                selected={gender === option.key}
+                disabled={true}
+                onSelect={() => onSelectGender(option.key)}
+                style={styles.radioButton}
+              />
+            ))}
+          </View>
+        </View>
 
-      <CustomInput
-        placeholder={strings.email}
-        placeholderTextColor={colors.lightGray}
-        value={email}
-        onChangeText={onChangeEmail}
-        editable={false}
-        error={errors.email}
-        style={[
-          {
-            backgroundColor:
-              themeMode === 'dark' ? currentTheme.background : undefined,
-            color: currentTheme.text,
-          },
-        ]}
-      />
+        <CustomInput
+          placeholder={t('phoneNo')}
+          placeholderTextColor={colors.lightGray}
+          value={phoneNo}
+          onChangeText={onChangePhoneNo}
+          error={errors.phoneNo}
+          style={styles.input}
+        />
 
-      <CustomInput
-        placeholder={strings.dob}
-        placeholderTextColor={colors.lightGray}
-        value={moment(date).format('DD/MM/YYYY')}
-        // editable={false}
-        onPressIn={() => setOpen(true)}
-        error={errors.dob}
-        style={[
-          {
-            backgroundColor:
-              themeMode === 'dark' ? currentTheme.background : undefined,
-            color: currentTheme.text,
-          },
-        ]}
-      />
-      <DatePicker
-        modal
-        mode="date"
-        open={open}
-        date={date}
-        onConfirm={onConfirmDob}
-        onCancel={() => {
-          setOpen(false);
-        }}
-        maximumDate={new Date()}
-      />
-      <CustomButton label={strings.submit} onPress={handleUpdate} />
+        <CustomInput
+          placeholder={t('email')}
+          placeholderTextColor={colors.lightGray}
+          value={email}
+          onChangeText={onChangeEmail}
+          editable={false}
+          error={errors.email}
+          style={styles.input}
+        />
+
+        <CustomInput
+          placeholder={t('dob')}
+          placeholderTextColor={colors.lightGray}
+          value={moment(date).format('DD/MM/YYYY')}
+          // editable={false}
+          onPressIn={() => setOpen(true)}
+          error={errors.dob}
+          style={styles.input}
+        />
+        <DatePicker
+          modal
+          mode="date"
+          open={open}
+          date={date}
+          onConfirm={onConfirmDob}
+          onCancel={() => {
+            setOpen(false);
+          }}
+          maximumDate={new Date()}
+        />
+        <CustomButton label={t('submit')} onPress={handleUpdate} />
+      </ScrollView>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  radioText: {
-    fontSize: rf(16),
-    fontWeight: 600,
-    marginBottom: rh(7),
-  },
-  radioView: {
-    marginHorizontal: rw(28),
-    marginBottom: rh(12),
-  },
-  radioButtonInnerView: {
-    flexDirection: 'row',
-    gap: rw(20),
-  },
-  profileView: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: rh(10),
-    marginTop: rh(15),
-  },
-  imagePickerField: {
-    height: rw(120),
-    width: rw(120),
-    backgroundColor: colors.offWhite,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.blueGray,
-    marginVertical: rh(10),
-    borderRadius: rw(100),
-  },
-  preview: {
-    height: rw(120),
-    width: rw(120),
-    borderRadius: rw(100),
-  },
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  left: {
-    position: 'absolute',
-    left: rw(20),
-  },
-  instagramText: {
-    fontSize: rf(25),
-  },
-  icon: {
-    width: rw(20),
-    height: rh(20),
-  },
-});
+const inlineStyle = (currentTheme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: currentTheme.background,
+    },
+    radioText: {
+      fontSize: rf(16),
+      fontWeight: 600,
+      marginBottom: rh(7),
+      color: currentTheme.text,
+    },
+    radioButton: { color: currentTheme.text },
+    radioView: {
+      marginHorizontal: rw(28),
+      marginBottom: rh(12),
+    },
+    radioButtonInnerView: {
+      flexDirection: 'row',
+      gap: rw(20),
+    },
+    profileView: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: rh(10),
+      marginTop: rh(15),
+    },
+    imagePickerField: {
+      height: rw(120),
+      width: rw(120),
+      backgroundColor: colors.offWhite,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.blueGray,
+      marginVertical: rh(10),
+      borderRadius: rw(100),
+    },
+    preview: {
+      height: rw(120),
+      width: rw(120),
+      borderRadius: rw(100),
+    },
+    headerContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: currentTheme.background,
+    },
+    left: {
+      position: 'absolute',
+      left: rw(20),
+    },
+    instagramText: {
+      fontSize: rf(25),
+      color: currentTheme.text,
+    },
+    icon: {
+      width: rw(20),
+      height: rh(20),
+      tintColor: currentTheme.text,
+    },
+    input: {
+      color: currentTheme.text,
+      backgroundColor: currentTheme.background,
+    },
+  });
 
 export default EditProfile;

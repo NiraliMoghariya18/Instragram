@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  RefreshControl,
+  Alert,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
 import { CustomCard } from '../../components/common/CustomCard';
-import { SearchUser, UserType } from '../../types/screens';
+import { SearchUser, Theme, UserType } from '../../types/screens';
 import Toast from 'react-native-toast-message';
 import { colors } from '../../utils/color';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,7 +21,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { StackRootScreen } from '../../types/navigationtype';
 import { useTheme } from '../../context/Theme';
 import { rf, rh, rw } from '../../utils/responsive';
-import { strings } from '../../utils/strings';
+import { useTranslation } from 'react-i18next';
 
 const Followers = () => {
   const route = useRoute();
@@ -31,8 +31,8 @@ const Followers = () => {
   const followers = params?.followers;
   const currentUserId = auth().currentUser?.uid;
   const [users, setUsers] = useState<UserType[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
 
+  const { t } = useTranslation();
   const [removedUsers, setRemovedUsers] = useState<string[]>([]);
 
   useEffect(() => {
@@ -97,11 +97,13 @@ const Followers = () => {
                   followStatus,
                 };
               });
-            console.log('usersWithStatus :>> ', usersWithStatus);
+
             setUsers(usersWithStatus as SearchUser[]);
           });
       } catch (error) {
-        console.log(error);
+        if (error instanceof Error) {
+          Alert.alert('Error', 'Something went wrong');
+        }
       }
     };
 
@@ -111,12 +113,6 @@ const Followers = () => {
       unsubscribe?.();
     };
   }, [followers, currentUserId, removedUsers]);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    // await getData();
-    setRefreshing(false);
-  }, []);
 
   const cancelFollowRequest = async (receiverId: string) => {
     try {
@@ -142,6 +138,7 @@ const Followers = () => {
         });
         await batch.commit();
       }
+      handleCancelReq();
     } catch (error) {
       console.log('Error', error);
 
@@ -150,10 +147,14 @@ const Followers = () => {
           user.id === receiverId ? { ...user, followStatus: 'pending' } : user,
         ),
       );
+
+      if (error instanceof Error) {
+        Alert.alert('Error', 'Something went wrong');
+      }
     }
   };
 
-  const unfollowUser = async (followerId: string) => {
+  const unfollowUser = async (followerId: string, firstName: string) => {
     try {
       if (!currentUserId) return;
 
@@ -182,17 +183,31 @@ const Followers = () => {
       batch.delete(request1);
 
       await batch.commit();
-
-      console.log('Follower removed');
+      handleUnFollowUser(firstName);
     } catch (error) {
-      console.log(error);
+      if (error instanceof Error) {
+        Alert.alert('Error', 'Something went wrong');
+      }
     }
   };
 
   const handleSuccess = (firstName: string) => {
     Toast.show({
       type: 'success',
-      text1: `✅ Send to Follow Req ${firstName} `,
+      text1: t('send_follow_req', { name: firstName }),
+    });
+  };
+
+  const handleCancelReq = () => {
+    Toast.show({
+      type: 'success',
+      text1: t('cancel_req'),
+    });
+  };
+  const handleUnFollowUser = (firstName: string) => {
+    Toast.show({
+      type: 'success',
+      text1: t('unfollow_user', { name: firstName }),
     });
   };
 
@@ -224,6 +239,20 @@ const Followers = () => {
           user.id === receiverId ? { ...user, followStatus: 'none' } : user,
         ),
       );
+      if (error instanceof Error) {
+        Alert.alert('Error', 'Something went wrong');
+      }
+    }
+  };
+  const styles = inlineStyle(currentTheme);
+
+  const customCardPress = (id: string, firstName: string, status: string) => {
+    if (status === 'pending') {
+      cancelFollowRequest(id);
+    } else if (status === 'accepted') {
+      unfollowUser(id, firstName);
+    } else {
+      sendFollowRequest(id, firstName);
     }
   };
 
@@ -237,17 +266,11 @@ const Followers = () => {
           lastName={item.lastName}
           image={item.profileImage}
           onPress={() => {
-            if (status === 'pending') {
-              cancelFollowRequest(item.id);
-            } else if (status === 'accepted') {
-              unfollowUser(item.id);
-            } else {
-              sendFollowRequest(item.id, item.firstName);
-            }
+            customCardPress(item.id, item.firstName, status);
           }}
           textStyle={status === 'accepted' && styles.followingText}
           btnStyle={status === 'accepted' && styles.followingButton}
-          ButtonName={
+          buttonName={
             status === 'accepted'
               ? 'Followed'
               : status === 'pending'
@@ -258,7 +281,7 @@ const Followers = () => {
           }
           closeImage={images.close}
           closeImageStyle={styles.closeImageStyle}
-          imageOnPress={() => unfollowUser(item.id)}
+          imageOnPress={() => unfollowUser(item.id, item.firstName)}
         />
       </View>
     );
@@ -266,12 +289,7 @@ const Followers = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View
-        style={[
-          styles.headerContainer,
-          { backgroundColor: currentTheme.background },
-        ]}
-      >
+      <View style={styles.headerContainer}>
         <TouchableOpacity
           style={styles.left}
           onPress={() => navigation.goBack()}
@@ -281,14 +299,12 @@ const Followers = () => {
               source={
                 themeMode === 'light' ? images.blackBack : images.whiteBack
               }
-              style={[styles.icon, { tintColor: currentTheme.text }]}
+              style={styles.icon}
               resizeMode="contain"
             />
           </>
         </TouchableOpacity>
-        <Text style={[styles.instagramText, { color: currentTheme.text }]}>
-          {strings.followers}
-        </Text>
+        <Text style={styles.instagramText}>{t('followers')}</Text>
       </View>
 
       <FlatList
@@ -296,11 +312,9 @@ const Followers = () => {
         renderItem={renderItem}
         keyExtractor={item => item.id}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>{strings.no_followers_found}</Text>
+          <Text style={styles.emptyText}>{t('no_followers_found')}</Text>
         }
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        style={styles.flatListStyle}
       />
     </SafeAreaView>
   );
@@ -308,39 +322,49 @@ const Followers = () => {
 
 export default Followers;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+const inlineStyle = (currentTheme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: currentTheme.background,
+    },
+    flatListStyle: { marginHorizontal: rw(20), marginTop: rh(10) },
+    followingButton: {
+      backgroundColor: colors.mediumDarkGray,
+    },
+    followingText: {
+      color: colors.black,
+    },
 
-  followingButton: {
-    backgroundColor: colors.mediumDarkGray,
-  },
-  followingText: {
-    color: colors.black,
-  },
+    emptyText: {
+      textAlign: 'center',
+      marginTop: 50,
+      fontSize: 16,
+      color: currentTheme.text,
+    },
 
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 50,
-    fontSize: 16,
-  },
-
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  left: {
-    position: 'absolute',
-    left: rw(20),
-  },
-  instagramText: {
-    fontSize: rf(25),
-  },
-  icon: {
-    width: rw(20),
-    height: rh(20),
-  },
-  closeImageStyle: { width: rw(15), height: rw(15) },
-});
+    headerContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: currentTheme.background,
+    },
+    left: {
+      position: 'absolute',
+      left: rw(20),
+    },
+    instagramText: {
+      fontSize: rf(25),
+      color: currentTheme.text,
+    },
+    icon: {
+      width: rw(20),
+      height: rh(20),
+      tintColor: currentTheme.text,
+    },
+    closeImageStyle: {
+      width: rw(15),
+      height: rw(15),
+      tintColor: currentTheme.text,
+    },
+  });
