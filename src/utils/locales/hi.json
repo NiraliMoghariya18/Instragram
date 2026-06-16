@@ -60,32 +60,31 @@
   "DOB_validation":"जन्म तिथि ज़रूरी है",
   "confirm_pass_validation":"पासवर्ड कन्फर्म करना ज़रूरी है।",
   "not_match_pass":"सांकेतिक शब्द मेल नहीं खाते",
-       "date_validation":"आपकी उम्र कम से कम 10 साल होनी चाहिए।",
-       "write_comment":"टिप्पणी लिखें...",
- "search_user":"यूज़र्स को खोजें...",
-     "title":"शीर्षक",
-    "description":"विवरण",
-    "title_validation":"शीर्षक आवश्यक है",
-           "description_validation":"विवरण आवश्यक है",
-   "image_validation":"इमेज ज़रूरी है",
+  "date_validation":"आपकी उम्र कम से कम 10 साल होनी चाहिए।",
+  "write_comment":"टिप्पणी लिखें...",
+  "search_user":"यूज़र्स को खोजें...",
+  "title":"शीर्षक",
+  "description":"विवरण",
+  "title_validation":"शीर्षक आवश्यक है",
+  "description_validation":"विवरण आवश्यक है",
+  "image_validation":"इमेज ज़रूरी है",
   "login_successfully": "✅ सफलतापूर्वक लॉग इन किया गया",   
-   "sigUp_successfully": "✅ सफलतापूर्वक साइन-अप किया गया",
-      "create_Post":"✅ पोस्ट सफलतापूर्वक बनाई गई।",
- "send_follow_req":"✅ {{name}} को फ़ॉलो रिक्वेस्ट भेजें",
-        "cancel_req":"✅ फ़ॉलो करने का अनुरोध रद्द किया गया",
-        "unfollow_user":"{{name}} को आपने अनफ़ॉलो कर दिया",
-                       "accept_follow_req":"✅ {{name}} ने आपको फॉलो करना शुरू किया",
-                                          "delete_follow_req":"✅ फ़ॉलो करने का अनुरोध अस्वीकार कर दिया गया",
-                                                         "edit_Profile":"✅ प्रोफ़ाइल सफलतापूर्वक एडिट की गई"
-
-
-
-
-
-
-
-
-
+  "sigUp_successfully": "✅ सफलतापूर्वक साइन-अप किया गया",
+  "create_Post":"✅ पोस्ट सफलतापूर्वक बनाई गई।",
+  "send_follow_req":"✅ {{name}} को फ़ॉलो रिक्वेस्ट भेजें",
+  "cancel_req":"✅ फ़ॉलो करने का अनुरोध रद्द किया गया",
+  "unfollow_user":"{{name}} को आपने अनफ़ॉलो कर दिया",
+  "accept_follow_req":"✅ {{name}} ने आपको फॉलो करना शुरू किया",
+  "delete_follow_req":"✅ फ़ॉलो करने का अनुरोध अस्वीकार कर दिया गया",
+  "edit_Profile":"✅ प्रोफ़ाइल सफलतापूर्वक एडिट की गई",
+  "cancel_req":"रिक्वेस्ट रद्द करें",
+  "follow_back":"फ़ॉलो बैक",
+  "followed":"फॉलोड",
+  "follow":"फॉलो",
+  "add_post":"नया पोस्ट डालें",
+  "notifi":"नोटिफिकेशन",
+  "profile":"प्रोफाइल",
+  "search" :"सर्च" 
 
 
 

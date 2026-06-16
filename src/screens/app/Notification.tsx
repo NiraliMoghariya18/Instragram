@@ -185,7 +185,7 @@ const Notification = () => {
       edges={['top', 'left', 'right']}
       style={styles.safeAreaViewStyle}
     >
-      <CustomHeader route="Notification" />
+      <CustomHeader route={t('notifi')} />
       <View style={styles.container}>
         <FlatList
           data={requests}

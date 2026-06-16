@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  I18nManager,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -31,7 +32,7 @@ const Following = () => {
   const { currentTheme, themeMode } = useTheme();
   const currentUserId = auth().currentUser?.uid;
   const [users, setUsers] = useState<UserType[]>([]);
-
+  const isRTL = I18nManager.isRTL;
   const { t } = useTranslation();
   const [removedUsers, setRemovedUsers] = useState<string[]>([]);
   const handleSuccess = (firstName: string) => {
@@ -241,7 +242,7 @@ const Following = () => {
       }
     }
   };
-  const styles = inlineStyle(currentTheme);
+  const styles = inlineStyle(currentTheme, isRTL);
 
   const customCardPress = (id: string, firstName: string, status: string) => {
     if (status === 'pending') {
@@ -256,7 +257,7 @@ const Following = () => {
     const status = item.followStatus || 'none';
 
     return (
-      <View>
+      <View style={styles.mt10}>
         <CustomCard
           firstName={item.firstName}
           lastName={item.lastName}
@@ -268,12 +269,12 @@ const Following = () => {
           btnStyle={status === 'accepted' && styles.followingButton}
           buttonName={
             status === 'accepted'
-              ? 'Followed'
+              ? t('followed')
               : status === 'pending'
-              ? 'Cancel Requested'
+              ? t('cancel_req')
               : status === 'follow_back'
-              ? 'Follow Back'
-              : 'Follow'
+              ? t('follow_back')
+              : t('follow')
           }
           closeImage={images.close}
           closeImageStyle={styles.closeImageStyle}
@@ -318,7 +319,7 @@ const Following = () => {
 
 export default Following;
 
-const inlineStyle = (currentTheme: Theme) =>
+const inlineStyle = (currentTheme: Theme, isRTL: boolean) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -331,7 +332,7 @@ const inlineStyle = (currentTheme: Theme) =>
     followingText: {
       color: colors.black,
     },
-
+    mt10: { marginTop: rh(10) },
     emptyText: {
       textAlign: 'center',
       marginTop: 50,
@@ -357,6 +358,7 @@ const inlineStyle = (currentTheme: Theme) =>
       width: rw(20),
       height: rh(20),
       tintColor: currentTheme.text,
+      transform: isRTL ? [{ rotate: '180deg' }] : undefined,
     },
     closeImageStyle: {
       width: rw(15),

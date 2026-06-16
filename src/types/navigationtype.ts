@@ -16,4 +16,5 @@ export type StackRootScreen = {
   EditProfile?: { userData: User; isEdit: boolean };
   Followers: { followers: string[] };
   Following: { following: string[] };
+  UserProfile?: undefined;
 };

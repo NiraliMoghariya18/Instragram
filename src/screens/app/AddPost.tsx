@@ -116,27 +116,49 @@ const AddPost = () => {
     }
   };
 
+  const removeImage = () => {
+    if (selectedImages) {
+      setSelectedImages([]);
+    }
+  };
+
   const styles = inlineStyle(currentTheme);
   return (
     <SafeAreaView
       edges={['top', 'left', 'right']}
       style={styles.safeAreaViewStyle}
     >
-      <CustomHeader route="Add Post" />
+      <CustomHeader route={t('add_post')} />
       <KeyboardAvoidingView style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false}>
           {selectedImages.length > 0 ? (
-            <View style={styles.carouselView}>
-              <Carousel
-                loop={false}
-                width={width - 30}
-                height={300}
-                data={selectedImages}
-                renderItem={({ item }) => (
-                  <Image source={{ uri: item.path }} style={styles.image} />
-                )}
-              />
-            </View>
+            <>
+              <View style={styles.carouselView}>
+                <Carousel
+                  loop={false}
+                  width={width - 20}
+                  height={width - 120}
+                  data={selectedImages}
+                  renderItem={({ item }) => (
+                    <>
+                      <Image source={{ uri: item.path }} style={styles.image} />
+                    </>
+                  )}
+                />
+                <TouchableOpacity
+                  style={styles.removeImage}
+                  onPress={removeImage}
+                >
+                  <Image
+                    source={images.close}
+                    style={{
+                      width: rw(20),
+                      height: rw(20),
+                    }}
+                  />
+                </TouchableOpacity>
+              </View>
+            </>
           ) : (
             <View style={styles.profileView}>
               <TouchableOpacity
@@ -176,6 +198,7 @@ const AddPost = () => {
             style={styles.input}
             error={errors.description}
             placeholderTextColor={currentTheme.text}
+            inputStyle={styles.descriptionInput}
           />
 
           <CustomButton label={t('create_post')} onPress={createPost} />
@@ -199,7 +222,7 @@ const inlineStyle = (currentTheme: Theme) =>
       justifyContent: 'center',
       alignItems: 'center',
       alignSelf: 'center',
-      marginBottom: rh(20),
+      // marginBottom: rh(20),
     },
     addImage: { width: rw(30), height: rh(30) },
     mt: {
@@ -233,11 +256,20 @@ const inlineStyle = (currentTheme: Theme) =>
       width: rw(400),
       height: rh(300),
       borderRadius: rw(15),
+
+      alignSelf: 'center',
     },
     input: {
-      paddingVertical: rh(14),
-      paddingHorizontal: rw(15),
       color: currentTheme.text,
       backgroundColor: currentTheme.background,
+    },
+    descriptionInput: {
+      minHeight: rh(100),
+      textAlignVertical: 'top',
+    },
+    removeImage: {
+      position: 'absolute',
+      top: rh(15),
+      right: rw(15),
     },
   });

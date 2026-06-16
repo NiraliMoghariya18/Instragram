@@ -57,38 +57,33 @@
   "phoneNumber_validation":"رقم الهاتف مطلوب",
   "invalid_phoneNumber_validation":"تنسيق رقم الهاتف غير صالح",
   "gender_validation":"يجب اختيار الجنس",
-   "DOB_validation":"تاريخ الميلاد مطلوب",
-   "confirm_pass_validation":"تأكيد كلمة المرور مطلوب",
-     "not_match_pass":"كلمتا المرور غير متطابقتين",
-     "date_validation":"يجب أن يكون عمرك 10 سنوات على الأقل.",
-    "write_comment":"اكتب تعليقاً...",
- "search_user":"ابحث عن المستخدمين...",
-"title":"عنوان",
-    "description":"وصف",
-    "title_validation":"العنوان مطلوب",
-"description_validation":"الوصف مطلوب",
-    "image_validation":"الصورة مطلوبة",
-    "login_successfully": "✅ تم تسجيل الدخول بنجاح",
-     "sigUp_successfully": "✅ تم التسجيل بنجاح",
-     "create_Post":"✅ تم إنشاء المنشور بنجاح",
-      "send_follow_req":"✅ {{name}}  إرسال طلب متابعة",
-        "cancel_req":"✅ تم إلغاء طلب المتابعة",
-"unfollow_user":"✅ لقد ألغيت المتابعة{{name}}",
-      "accept_follow_req":"✅ {{name}} بدأتُ بمتابعتك",
- "delete_follow_req":"✅ رفض طلب المتابعة",
-                "edit_Profile":"✅ تم تعديل الملف الشخصي بنجاح"
-
-
-
-
-
-
-
-
-
-
-
-
-
+  "DOB_validation":"تاريخ الميلاد مطلوب",
+  "confirm_pass_validation":"تأكيد كلمة المرور مطلوب",
+  "not_match_pass":"كلمتا المرور غير متطابقتين",
+  "date_validation":"يجب أن يكون عمرك 10 سنوات على الأقل.",
+  "write_comment":"اكتب تعليقاً...",
+  "search_user":"ابحث عن المستخدمين...",
+  "title":"عنوان",
+  "description":"وصف",
+  "title_validation":"العنوان مطلوب",
+  "description_validation":"الوصف مطلوب",
+  "image_validation":"الصورة مطلوبة",
+  "login_successfully": "✅ تم تسجيل الدخول بنجاح",
+  "sigUp_successfully": "✅ تم التسجيل بنجاح",
+  "create_Post":"✅ تم إنشاء المنشور بنجاح",
+  "send_follow_req":"✅ {{name}}  إرسال طلب متابعة",
+  "cancel_req":"✅ تم إلغاء طلب المتابعة",
+  "unfollow_user":"✅ لقد ألغيت المتابعة{{name}}",
+  "accept_follow_req":"✅ {{name}} بدأتُ بمتابعتك",
+  "delete_follow_req":"✅ رفض طلب المتابعة",
+  "edit_Profile":"✅ تم تعديل الملف الشخصي بنجاح",
+  "cancel_req":"إلغاء الطلب",
+  "follow_back":"تابع ما سبق",
+  "followed":"تمت المتابعة",
+  "follow":"يتبع",
+  "add_post":"إضافة منشور",
+  "notifi":"إشعار",
+  "profile":"حساب تعريفي",
+  "search" :"يبحث" 
 
 }

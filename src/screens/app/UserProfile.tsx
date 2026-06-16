@@ -1,70 +1,99 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
+  ActivityIndicator,
+  useWindowDimensions,
+  ScrollView,
   Image,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
-  RefreshControl,
-  Modal,
-  ScrollView,
-  useWindowDimensions,
+  FlatList,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
-import auth from '@react-native-firebase/auth';
 import { rf, rh, rw } from '../../utils/responsive';
-import { useTheme } from '../../context/Theme';
 import { colors } from '../../utils/color';
-import Carousel, {
-  ICarouselInstance,
-  Pagination,
-} from 'react-native-reanimated-carousel';
-import { useSharedValue } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../context/Theme';
+import { useRoute } from '@react-navigation/native';
+import { RenderPost, Theme, User } from '../../types/screens';
 import { images } from '../../utils/images';
+import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { StackRootScreen } from '../../types/navigationtype';
-import { useNavigation } from '@react-navigation/native';
-import { RenderPost, Theme, User } from '../../types/screens';
-import { useTranslation } from 'react-i18next';
-import CustomHeader from '../../navigations/CustomHeader';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-const Profile = () => {
+const UserProfile = () => {
+  // Extract userId from the deep link route parameters
+  const route = useRoute();
+  const params = route.params as { userId: string } | undefined;
+  const userId = params?.userId;
+  const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<User | null>(null);
-  const [posts, setPosts] = useState<RenderPost[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedPost, setSelectedPost] = useState<RenderPost>();
-  const { t } = useTranslation();
+  console.log('userId :>> ', userId);
+  console.log('userData :>> ', userData);
+  const { currentTheme, themeMode } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
   const ITEM_SIZE = screenWidth / 3.05;
+  const styles = inlineStyle(currentTheme, ITEM_SIZE);
+  const { t } = useTranslation();
+  const [posts, setPosts] = useState<RenderPost[]>([]);
   const navigation = useNavigation<StackNavigationProp<StackRootScreen>>();
 
-  const { currentTheme } = useTheme();
+  //   useEffect(() => {
+  //     const unsubscribe = firestore()
+  //       .collection('users')
+  //       .doc(userId)
+  //       .onSnapshot(onSnapshot => {
+  //         if (onSnapshot.exists) {
+  //           setUserData(onSnapshot.data());
+  //         }
+  //         setLoading(false);
+  //       });
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await getProfileData();
-    setRefreshing(false);
-  }, []);
-
+  //     return () => unsubscribe();
+  //   }, [userId]);
   useEffect(() => {
     getProfileData();
-  }, []);
-  const ref = useRef<ICarouselInstance>(null);
-  const progress = useSharedValue<number>(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
+  // const getProfileData = async () => {
+  //   // const uid = auth().currentUser?.uid;
+
+  //   const userDoc = await firestore()
+  //     .collection('users')
+  //     .doc(userId)
+  //     .onSnapshot(onSnapshot => {
+  //       if (onSnapshot.exists) {
+  //         //   const postSnapshot = await firestore()
+  //         //     .collection('posts')
+  //         //     .where('userId', '==', userId)
+  //         //     .get();
+
+  //         //   const userPosts: RenderPost[] = postSnapshot.docs.map(doc => ({
+  //         //     id: doc.id,
+  //         //     ...doc.data(),
+  //         //   }));
+  //         //   setLoading(false);
+  //         //   setPosts(userPosts);
+  //         setUserData(onSnapshot.data());
+  //       }
+  //       setLoading(false);
+  //     });
+
+  //   // setUserData(userDoc.data() as any);
+  // };
   const getProfileData = async () => {
-    const uid = auth().currentUser?.uid;
-
-    const userDoc = await firestore().collection('users').doc(uid).get();
+    // const uid = auth().currentUser?.uid;
+    setLoading(false);
+    const userDoc = await firestore().collection('users').doc(userId).get();
 
     setUserData(userDoc.data() as User);
 
     const postSnapshot = await firestore()
       .collection('posts')
-      .where('userId', '==', uid)
+      .where('userId', '==', userId)
       .get();
 
     const userPosts: RenderPost[] = postSnapshot.docs.map(doc => ({
@@ -75,18 +104,14 @@ const Profile = () => {
     setPosts(userPosts);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-shadow
-  const editProfile = (userData: User) => {
-    navigation.navigate('EditProfile', { userData, isEdit: true });
-  };
-  const styles = inlineStyle(currentTheme, ITEM_SIZE);
+  if (loading) return <ActivityIndicator size="large" />;
   const renderPost = ({ item }: { item: RenderPost }) => {
     return (
       <TouchableOpacity
-        onPress={() => {
-          setSelectedPost(item);
-          setModalVisible(true);
-        }}
+      // onPress={() => {
+      //   setSelectedPost(item);
+      //   setModalVisible(true);
+      // }}
       >
         <Image
           source={{
@@ -102,12 +127,34 @@ const Profile = () => {
       edges={['top', 'left', 'right']}
       style={styles.safeAreaViewStyle}
     >
-      <CustomHeader route={t('profile')} />
+      {/* <CustomHeader route={t('profile')} /> */}
+      <View style={styles.headerContainer}>
+        <TouchableOpacity
+          style={styles.left}
+          onPress={() =>
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'DrawerNavigation' }],
+            })
+          }
+        >
+          <>
+            <Image
+              source={
+                themeMode === 'light' ? images.blackBack : images.whiteBack
+              }
+              style={styles.icon}
+              resizeMode="contain"
+            />
+          </>
+        </TouchableOpacity>
+        <Text style={styles.instagramText}>{t('profile')}</Text>
+      </View>
       <ScrollView
         style={styles.container}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        // refreshControl={
+        //   <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        // }
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
@@ -122,16 +169,16 @@ const Profile = () => {
 
           <View style={styles.statsContainer}>
             <View style={styles.statBox}>
-              <Text style={styles.count}>{posts.length}</Text>
+              <Text style={styles.count}>{posts?.length}</Text>
               <Text style={styles.text}>{t('posts')}</Text>
             </View>
             <TouchableOpacity
               style={styles.statBox}
-              onPress={() =>
-                navigation.navigate('Followers', {
-                  followers: userData?.followers || [],
-                })
-              }
+              //   onPress={() =>
+              //     navigation.navigate('Followers', {
+              //       followers: userData?.followers || [],
+              //     })
+              //   }
             >
               <Text style={styles.count}>
                 {userData?.followers?.length || 0}
@@ -141,11 +188,11 @@ const Profile = () => {
 
             <TouchableOpacity
               style={styles.statBox}
-              onPress={() =>
-                navigation.navigate('Following', {
-                  following: userData?.following || [],
-                })
-              }
+              //   onPress={() =>
+              //     navigation.navigate('Following', {
+              //       following: userData?.following || [],
+              //     })
+              //   }
             >
               <Text style={styles.count}>
                 {userData?.following?.length || 0}
@@ -159,16 +206,16 @@ const Profile = () => {
           {userData?.firstName} {userData?.lastName}
         </Text>
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.editBtn}
           onPress={() => {
-            if (userData) {
-              editProfile(userData);
-            }
+            // if (userData) {
+            //   editProfile(userData);
+            // }
           }}
         >
           <Text style={styles.editText}>{t('edit_profile')}</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <FlatList
           data={posts}
@@ -181,7 +228,7 @@ const Profile = () => {
           scrollEnabled={false}
         />
       </ScrollView>
-      <Modal
+      {/* <Modal
         statusBarTranslucent
         animationType="slide"
         visible={modalVisible}
@@ -237,12 +284,10 @@ const Profile = () => {
             </View>
           </View>
         </View>
-      </Modal>
+      </Modal> */}
     </SafeAreaView>
   );
 };
-
-export default Profile;
 const inlineStyle = (currentTheme: Theme, ITEM_SIZE: number) =>
   StyleSheet.create({
     container: {
@@ -354,4 +399,27 @@ const inlineStyle = (currentTheme: Theme, ITEM_SIZE: number) =>
       marginHorizontal: rw(20),
       tintColor: currentTheme.text,
     },
+    headerContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: currentTheme.background,
+    },
+    left: {
+      position: 'absolute',
+      left: rw(20),
+    },
+    instagramText: {
+      textAlign: 'center',
+      color: currentTheme.text,
+      // fontFamily: route === 'Instagram' ? 'GrandHotel-Regular' : undefined,
+      fontSize: rf(22),
+    },
+    icon: {
+      width: rw(22),
+      height: rw(22),
+      tintColor: currentTheme.text,
+    },
+    // safeAreaViewStyle: { backgroundColor: currentTheme.background },
   });
+export default UserProfile;

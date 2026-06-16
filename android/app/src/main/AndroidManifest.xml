@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
   <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.CAMERA"/>
+<queries>
+    <package android:name="com.instagramdemoapp" />
+</queries>
 
   <application
     android:name=".MainApplication"
@@ -24,6 +27,14 @@
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
+    <intent-filter>
+      <action android:name="android.intent.action.VIEW" />
+      <category android:name="android.intent.category.DEFAULT" />
+      <category android:name="android.intent.category.BROWSABLE" />
+      <data android:scheme="myapp" /> 
+        <!-- <data android:scheme="https" android:host="myapp.com" />
+      <data android:scheme="http" android:host="myapp.com" /> -->
+  </intent-filter>
     </activity>
   </application>
 </manifest>

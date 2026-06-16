@@ -34,6 +34,7 @@ interface Props {
   editable?: boolean;
   onPressIn?: () => void;
   variant?: 'primary' | 'secondary';
+  inputStyle?: StyleProp<TextStyle>;
 }
 
 const CustomInput = ({
@@ -53,6 +54,7 @@ const CustomInput = ({
   editable = true,
   onPressIn,
   variant,
+  inputStyle,
 }: Props) => {
   const { currentTheme } = useTheme();
   const isRTL = I18nManager.isRTL;
@@ -74,7 +76,7 @@ const CustomInput = ({
           placeholder={placeholder}
           multiline={multiline}
           numberOfLines={numberOfLines}
-          style={[styles.textInput]}
+          style={[styles.textInput, inputStyle]}
           onChangeText={onChangeText}
           secureTextEntry={secureTextEntry}
           editable={editable}
