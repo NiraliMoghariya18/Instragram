@@ -23,6 +23,7 @@ import auth from '@react-native-firebase/auth';
 // import { I18nextProvider } from 'react-i18next';
 // import i18next from './src/services/i18n';
 import './src/services/i18n';
+// import Profile from './src/screens/app/Profile';
 
 const App = () => {
   useEffect(() => {
@@ -106,6 +107,20 @@ const App = () => {
     });
   }
 
+  const linking: any = {
+    prefixes: ['myapp://', 'https://myapp.com'],
+    config: {
+      screens: {
+        DrawerNavigation: {
+          screens: {
+            Home: 'home',
+          },
+        },
+        UserProfile: 'userProfile/:userId',
+      },
+    },
+  };
+
   return (
     <>
       <SafeAreaProvider style={{ flex: 1 }}>
@@ -114,10 +129,10 @@ const App = () => {
           <NavigationContainer
             onReady={() => {
               processPendingActions();
-
               BootSplash.hide({ fade: true });
             }}
             ref={navigationRef}
+            linking={linking}
           >
             <StackNavigation />
           </NavigationContainer>

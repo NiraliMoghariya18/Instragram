@@ -17,6 +17,7 @@ import messaging from '@react-native-firebase/messaging';
 import { useNavigation } from '@react-navigation/native';
 import { navigate } from '../services/navigationService';
 import firestore from '@react-native-firebase/firestore';
+import UserProfile from '../screens/app/UserProfile';
 const Stack = createStackNavigator<StackRootScreen>();
 
 const StackNavigation = () => {
@@ -102,9 +103,10 @@ const StackNavigation = () => {
   if (loading) {
     return null;
   }
+
   return (
     <Stack.Navigator
-      screenOptions={{ headerShown: false }}
+      screenOptions={{ headerShown: false, gestureEnabled: false }}
       initialRouteName={initialRoute}
     >
       <Stack.Screen
@@ -112,6 +114,7 @@ const StackNavigation = () => {
         component={DrawerNavigation}
         options={{
           headerShown: false,
+          gestureEnabled: false,
         }}
       />
       <Stack.Screen
@@ -138,6 +141,11 @@ const StackNavigation = () => {
         name="Following"
         component={Following}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="UserProfile"
+        component={UserProfile}
+        options={{ headerShown: false, gestureEnabled: false }}
       />
     </Stack.Navigator>
   );
